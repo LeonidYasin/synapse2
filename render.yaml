@@ -1,5 +1,5 @@
 services:
-  # Бэкенд API — используем starter (бесплатный план для веб-сервисов)
+  # Бэкенд API
   - type: web
     name: synapse-api
     runtime: python
@@ -14,7 +14,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
 
-  # Фронтенд — статический сайт (бесплатный план)
+  # Фронтенд — статический сайт
   - type: web
     name: synapse-frontend
     runtime: static
