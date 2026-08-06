@@ -1,5 +1,5 @@
 services:
-  # Бэкенд API (с SQLite по умолчанию)
+  # Бэкенд API
   - type: web
     name: synapse-api
     runtime: python
@@ -14,13 +14,13 @@ services:
       - key: SECRET_KEY
         generateValue: true
 
-  # Фронтенд
+  # Фронтенд — убираем region, статическим сайтам он не нужен
   - type: web
     name: synapse-frontend
     runtime: static
     repo: https://github.com/LeonidYasin/synapse2
     plan: free
-    region: frankfurt
+    buildCommand: echo "Static site ready"
     staticPublishPath: frontend
     envVars:
       - key: API_URL
