@@ -12,9 +12,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const registerBtn = document.getElementById('registerBtn');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    const API_BASE = 'http://localhost:8000';
+    // Определяем URL API: используем переменную окружения или localhost для разработки
+    const API_BASE = window.API_URL || 'http://localhost:8000';
     let token = localStorage.getItem('token');
     let currentUser = localStorage.getItem('username');
+
+    // Функция для API запросов с авторизацией
+    async function apiRequest(endpoint, method = 'GET', body = null) {
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        const options = { method, headers };
+        if (body) {
+            options.body = JSON.stringify(body);
+        }
+        const response = await fetch(`${API_BASE}${endpoint}`, options);
+        return response;
+    }
 
     if (token) {
         showLoggedIn();
@@ -28,11 +45,14 @@ document.addEventListener('DOMContentLoaded', () => {
         loginBtn.style.display = 'none';
         registerBtn.style.display = 'none';
         logoutBtn.style.display = 'inline-block';
-        // Добавляем имя пользователя в интерфейс
-        const userSpan = document.createElement('span');
-        userSpan.style.marginLeft = '10px';
-        userSpan.textContent = `👤 ${currentUser}`;
-        document.querySelector('.settings').appendChild(userSpan);
+        // Добавляем имя пользователя, если его нет
+        const userSpan = document.querySelector('.user-name');
+        if (!userSpan) {
+            const span = document.createElement('span');
+            span.className = 'user-name';
+            span.textContent = `👤 ${currentUser}`;
+            document.querySelector('.settings').appendChild(span);
+        }
     }
 
     function showLoggedOut() {
@@ -41,12 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
         loginBtn.style.display = 'inline-block';
         registerBtn.style.display = 'inline-block';
         logoutBtn.style.display = 'none';
+        const userSpan = document.querySelector('.user-name');
+        if (userSpan) userSpan.remove();
         localStorage.removeItem('token');
         localStorage.removeItem('username');
         token = null;
         currentUser = null;
-        profileContent.innerHTML = '<p>Войдите в систему, чтобы увидеть свой профиль.</p>';
-        recommendationsContent.innerHTML = '<p>Войдите в систему для получения рекомендаций.</p>';
     }
 
     function addMessage(role, content) {
@@ -57,49 +77,50 @@ document.addEventListener('DOMContentLoaded', () => {
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    async function apiRequest(endpoint, method = 'GET', body = null) {
-        const headers = {
-            'Content-Type': 'application/json',
-        };
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-        const options = {
-            method,
-            headers,
-        };
-        if (body) {
-            options.body = JSON.stringify(body);
-        }
-        const response = await fetch(`${API_BASE}${endpoint}`, options);
-        if (response.status === 401) {
-            showLoggedOut();
-            throw new Error('Unauthorized');
-        }
-        return response;
-    }
-
-    async function login() {
+    // Регистрация
+    registerBtn.addEventListener('click', async () => {
         const username = loginInput.value.trim();
         const password = passwordInput.value.trim();
         if (!username || !password) {
             alert('Введите логин и пароль');
             return;
         }
+        try {
+            const response = await fetch(`${API_BASE}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            if (response.ok) {
+                alert('Регистрация успешна! Теперь войдите.');
+            } else {
+                const data = await response.json();
+                alert('Ошибка: ' + (data.detail || 'Неизвестная ошибка'));
+            }
+        } catch (error) {
+            alert('Ошибка соединения с сервером');
+        }
+    });
 
+    // Вход
+    loginBtn.addEventListener('click', async () => {
+        const username = loginInput.value.trim();
+        const password = passwordInput.value.trim();
+        if (!username || !password) {
+            alert('Введите логин и пароль');
+            return;
+        }
         try {
             const formData = new URLSearchParams();
             formData.append('username', username);
             formData.append('password', password);
-
             const response = await fetch(`${API_BASE}/auth/token`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: formData
             });
-
-            const data = await response.json();
             if (response.ok) {
+                const data = await response.json();
                 token = data.access_token;
                 currentUser = username;
                 localStorage.setItem('token', token);
@@ -107,54 +128,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 showLoggedIn();
                 loadProfile();
                 loadRecommendations();
-                addMessage('assistant', `Добро пожаловать, ${username}! Я ваш ИИ-ассистент Синапс.`);
+                alert('Вход выполнен!');
             } else {
-                alert('Ошибка входа: ' + data.detail);
+                const data = await response.json();
+                alert('Ошибка: ' + (data.detail || 'Неверный логин или пароль'));
             }
         } catch (error) {
             alert('Ошибка соединения с сервером');
         }
-    }
+    });
 
-    async function register() {
-        const username = loginInput.value.trim();
-        const password = passwordInput.value.trim();
-        if (!username || !password) {
-            alert('Введите логин и пароль');
-            return;
-        }
-
-        try {
-            const response = await fetch(`${API_BASE}/auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-
-            const data = await response.json();
-            if (response.ok) {
-                alert('Регистрация успешна! Теперь войдите.');
-            } else {
-                alert('Ошибка регистрации: ' + data.detail);
-            }
-        } catch (error) {
-            alert('Ошибка соединения с сервером');
-        }
-    }
-
-    function logout() {
+    // Выход
+    logoutBtn.addEventListener('click', () => {
         showLoggedOut();
-        addMessage('assistant', 'Вы вышли из системы.');
-    }
+        profileContent.innerHTML = '<p>Войдите в систему, чтобы увидеть свой профиль.</p>';
+        recommendationsContent.innerHTML = '<p>Войдите в систему для получения рекомендаций.</p>';
+        messagesDiv.innerHTML = '';
+    });
 
     async function sendMessage() {
-        if (!token) {
-            alert('Пожалуйста, войдите в систему, чтобы отправлять сообщения.');
-            return;
-        }
-
         const text = userInput.value.trim();
         if (!text) return;
+
+        if (!token) {
+            alert('Пожалуйста, войдите в систему');
+            return;
+        }
 
         addMessage('user', text);
         userInput.value = '';
@@ -163,7 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const messages = [];
         messageElements.forEach(el => {
             const role = el.classList.contains('user') ? 'user' : 'assistant';
-            if (role === 'assistant' && el.textContent.includes('Добро пожаловать')) return;
             messages.push({ role, content: el.textContent });
         });
 
@@ -173,78 +171,72 @@ document.addEventListener('DOMContentLoaded', () => {
                 api_key: apiKeyInput.value || null,
                 model: 'deepseek-chat'
             });
-
             const data = await response.json();
             if (response.ok) {
                 addMessage('assistant', data.content);
             } else {
-                addMessage('assistant', 'Ошибка: ' + data.detail);
+                addMessage('assistant', 'Ошибка: ' + (data.detail || 'Неизвестная ошибка'));
             }
         } catch (error) {
-            if (error.message !== 'Unauthorized') {
-                addMessage('assistant', 'Не удалось соединиться с сервером.');
-            }
+            addMessage('assistant', 'Не удалось соединиться с сервером.');
         }
     }
+
+    sendBtn.addEventListener('click', sendMessage);
+    userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
 
     async function loadProfile() {
         if (!token) return;
         try {
             const response = await apiRequest('/agent/profile');
-            const data = await response.json();
             if (response.ok) {
+                const data = await response.json();
                 profileContent.innerHTML = `
                     <h4>Ключевые темы</h4>
-                    ${data.topics && data.topics.length > 0 ? 
-                        `<ul>${data.topics.map(t => `<li>${t}</li>`).join('')}</ul>` : 
-                        '<p>Пока нет тем. Начните общение с ИИ.</p>'}
-                    <p><strong>Резюме:</strong> ${data.summary || 'Нет данных'}</p>
+                    <ul>${(data.topics || []).map(t => `<li>${t}</li>`).join('') || '<li>Пока нет данных</li>'}</ul>
+                    <p><strong>Резюме:</strong> ${data.summary || 'Профиль формируется...'}</p>
                 `;
             }
         } catch (error) {
-            console.error('Error loading profile:', error);
+            profileContent.innerHTML = '<p>Ошибка загрузки профиля</p>';
         }
     }
 
     async function loadRecommendations() {
         if (!token) return;
         try {
-            const response = await apiRequest('/recommendations/suggestions');
-            const data = await response.json();
-            if (response.ok && data.suggestions) {
-                recommendationsContent.innerHTML = `
-                    <ul>${data.suggestions.map(s => `<li>${s}</li>`).join('')}</ul>
-                `;
-            }
-
-            // Также загружаем матчи
-            const matchesResponse = await apiRequest('/recommendations/matches');
-            const matches = await matchesResponse.json();
-            if (matchesResponse.ok && matches.length > 0) {
-                const matchesHtml = matches.slice(0, 3).map(m => `
-                    <div style="border:1px solid #ddd;border-radius:8px;padding:10px;margin-top:10px;">
-                        <strong>👤 ${m.user_id}</strong>
-                        <div>Совпадение: ${m.match_score}%</div>
-                        <div>Общие темы: ${m.common_topics.join(', ')}</div>
-                        <div style="font-size:12px;color:#666;">${m.summary}</div>
-                    </div>
-                `).join('');
-                recommendationsContent.innerHTML += `
-                    <h4 style="margin-top:20px;">Найдены совпадения</h4>
-                    ${matchesHtml}
-                `;
+            const response = await apiRequest('/recommendations/matches');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.length === 0) {
+                    recommendationsContent.innerHTML = '<p>Пока нет совпадений. Продолжайте общаться с ИИ.</p>';
+                } else {
+                    recommendationsContent.innerHTML = `
+                        <h4>Совпадения</h4>
+                        ${data.slice(0, 5).map(m => `
+                            <div style="border-bottom:1px solid #eee;padding:8px 0;">
+                                <strong>${m.user_id}</strong> — ${m.match_score}%
+                                <br><small>Общие темы: ${(m.common_topics || []).join(', ')}</small>
+                            </div>
+                        `).join('')}
+                    `;
+                }
             }
         } catch (error) {
-            console.error('Error loading recommendations:', error);
+            recommendationsContent.innerHTML = '<p>Ошибка загрузки рекомендаций</p>';
         }
     }
 
-    async function analyzeDialogues() {
+    analyzeBtn.addEventListener('click', async () => {
         if (!token) {
-            alert('Пожалуйста, войдите в систему для анализа диалогов.');
+            alert('Пожалуйста, войдите в систему');
             return;
         }
-
         const messageElements = messagesDiv.querySelectorAll('.message');
         const messages = [];
         messageElements.forEach(el => {
@@ -257,48 +249,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 user_id: currentUser,
                 messages: messages
             });
-
-            const data = await response.json();
             if (response.ok) {
+                const data = await response.json();
                 profileContent.innerHTML = `
                     <h4>Ключевые темы</h4>
-                    ${data.topics && data.topics.length > 0 ? 
-                        `<ul>${data.topics.map(t => `<li>${t}</li>`).join('')}</ul>` : 
-                        '<p>Темы не найдены</p>'}
-                    <p><strong>Резюме:</strong> ${data.summary || 'Нет данных'}</p>
-                    ${data.entities && data.entities.length > 0 ? 
-                        `<p><strong>Сущности:</strong> ${data.entities.join(', ')}</p>` : ''}
-                    ${data.intentions && data.intentions.length > 0 ? 
-                        `<p><strong>Намерения:</strong> ${data.intentions.join(', ')}</p>` : ''}
+                    <ul>${(data.topics || []).map(t => `<li>${t}</li>`).join('') || '<li>Пока нет данных</li>'}</ul>
+                    <p><strong>Резюме:</strong> ${data.summary || 'Профиль формируется...'}</p>
                 `;
-                loadRecommendations();
-                addMessage('assistant', '✅ Профиль успешно обновлён!');
+                alert('Анализ завершён!');
             } else {
-                alert('Ошибка анализа: ' + data.detail);
+                const data = await response.json();
+                alert('Ошибка анализа: ' + (data.detail || 'Неизвестная ошибка'));
             }
         } catch (error) {
-            if (error.message !== 'Unauthorized') {
-                alert('Сервер недоступен');
-            }
-        }
-    }
-
-    // Обработчики событий
-    loginBtn.addEventListener('click', login);
-    registerBtn.addEventListener('click', register);
-    logoutBtn.addEventListener('click', logout);
-    sendBtn.addEventListener('click', sendMessage);
-    analyzeBtn.addEventListener('click', analyzeDialogues);
-
-    userInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
+            alert('Сервер недоступен');
         }
     });
-
-    // Приветственное сообщение для новых пользователей
-    if (!token) {
-        addMessage('assistant', '👋 Добро пожаловать в Синапс! Войдите или зарегистрируйтесь, чтобы начать общение с ИИ-ассистентом.');
-    }
 });
