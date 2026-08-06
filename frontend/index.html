@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Синапс — ИИ-помощник</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>🧠 Синапс</h1>
+            <div class="settings">
+                <input type="text" id="apiKeyInput" placeholder="Ваш API-ключ (опционально)" />
+                <button id="analyzeBtn">Анализировать диалоги</button>
+            </div>
+        </header>
+        <main>
+            <div id="chatContainer">
+                <div id="messages"></div>
+                <div id="inputArea">
+                    <textarea id="userInput" rows="3" placeholder="Напишите сообщение..."></textarea>
+                    <button id="sendBtn">Отправить</button>
+                </div>
+            </div>
+            <div id="profileSidebar">
+                <h3>Ваш профиль</h3>
+                <div id="profileContent">
+                    <p>Здесь будет отображаться ваш ИИ-профиль после анализа.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
