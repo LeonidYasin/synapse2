@@ -18,7 +18,7 @@ services:
           name: synapse-db
           property: connectionString
 
-  # Фронтенд — используем type: web с статической публикацией
+  # Фронтенд
   - type: web
     name: synapse-frontend
     runtime: static
@@ -31,8 +31,8 @@ services:
       - key: API_URL
         value: https://synapse-api.onrender.com
 
-  # База данных PostgreSQL
-  - type: postgresql
+  # База данных — используем type: database вместо postgresql
+  - type: database
     name: synapse-db
     plan: free
     region: frankfurt
