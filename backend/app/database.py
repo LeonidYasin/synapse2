@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, String, Text, Integer, DateTime
+from sqlalchemy import create_engine, Column, String, Text, Integer, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -14,6 +14,13 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     api_key = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Stripe поля
+    stripe_customer_id = Column(String, nullable=True)
+    stripe_subscription_id = Column(String, nullable=True)
+    subscription_status = Column(String, default="inactive")  # inactive, active, canceling
+    subscription_end = Column(DateTime, nullable=True)
+    plan = Column(String, nullable=True)  # monthly, yearly
 
 class Dialogue(Base):
     __tablename__ = "dialogues"
