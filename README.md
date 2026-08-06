@@ -2,114 +2,107 @@
 
 ИИ-ассистент, который анализирует ваши диалоги и находит связи с другими людьми.
 
-## Возможности
-
-- 🔐 **Аутентификация** — регистрация и вход через JWT
-- 💬 **Чат с ИИ** — общение с DeepSeek через собственный или общий API-ключ
-- 🤖 **Агент-сканер** — анализ диалогов для извлечения тем, сущностей и намерений
-- 🔗 **Рекомендации** — поиск пользователей с похожими интересами
-- 💳 **Подписки** — интеграция с Stripe для монетизации
-- 🌓 **Тёмная тема** — удобный интерфейс с переключением режимов
-- 📱 **Адаптивный дизайн** — работает на всех устройствах
-
 ## Быстрый старт
 
-### 1. Клонируйте репозиторий
+### Локальный запуск
+
+1. Клонируйте репозиторий
 ```bash
 git clone https://github.com/LeonidYasin/synapse2.git
 cd synapse2
 ```
 
-### 2. Настройте бэкенд
+2. Создайте и активируйте виртуальное окружение
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # или venv\Scripts\activate на Windows
+source venv/bin/activate  # для Linux/Mac
+# или venv\Scripts\activate для Windows
+```
+
+3. Установите зависимости
+```bash
 pip install -r requirements.txt
 ```
 
-### 3. Создайте файл `.env` в папке `backend`:
-```env
-DEEPSEEK_API_KEY=ваш_ключ_DeepSeek
-SECRET_KEY=секретная_строка
-
-# Опционально: для платежей
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+4. Создайте файл `.env` в папке `backend` на основе `.env.example`
+```bash
+cp .env.example .env
+# Отредактируйте .env, добавьте ваш DEEPSEEK_API_KEY
 ```
 
-### 4. Запустите бэкенд
+5. Запустите бэкенд
 ```bash
 python run.py
 ```
 
-### 5. Откройте фронтенд
-Просто откройте `frontend/index.html` в браузере или используйте Live Server.
-
-## Структура проекта
-
-```
-synapse/
-├── backend/
-│   ├── app/
-│   │   ├── agent/          # Агент-сканер
-│   │   ├── routers/        # API роутеры
-│   │   ├── utils/          # Вспомогательные функции
-│   │   ├── auth.py         # JWT аутентификация
-│   │   ├── config.py       # Конфигурация
-│   │   ├── database.py     # Модели базы данных
-│   │   └── main.py         # Точка входа
-│   ├── requirements.txt
-│   └── run.py
-├── frontend/
-│   ├── index.html
-│   ├── style.css
-│   └── app.js
-└── README.md
-```
-
-## API Эндпоинты
-
-### Аутентификация
-- `POST /auth/register` — регистрация
-- `POST /auth/token` — вход (JWT)
-- `GET /auth/me` — получить текущего пользователя
-
-### Чат
-- `POST /chat` — отправка сообщения (требуется аутентификация)
-- `POST /chat/public` — публичный чат (без аутентификации)
-
-### Агент
-- `POST /agent/analyze` — анализ диалогов
-- `GET /agent/profile` — получение профиля
-
-### Рекомендации
-- `GET /recommendations/matches` — поиск совпадений
-- `GET /recommendations/suggestions` — предложения по улучшению
-
-### Платежи
-- `GET /payments/prices` — список цен
-- `POST /payments/create-subscription` — создание подписки
-- `GET /payments/status` — статус подписки
-- `POST /payments/cancel` — отмена подписки
+6. Откройте `frontend/index.html` в браузере
 
 ## Деплой на Render
 
-1. Залейте код на GitHub
-2. Создайте Web Service на Render.com
-3. Укажите:
+### Способ 1: Через render.yaml (автоматический)
+
+1. Форкните этот репозиторий на GitHub
+2. Зайдите на [Render.com](https://render.com) и нажмите "New + → Blueprint"
+3. Подключите ваш GitHub репозиторий
+4. Render автоматически обнаружит `render.yaml` и предложит создать все сервисы
+5. Введите ваш `DEEPSEEK_API_KEY` в настройках сервиса
+6. Нажмите "Apply"
+
+### Способ 2: Вручную через веб-интерфейс
+
+#### Бэкенд (Web Service)
+
+1. На Render нажмите "New + → Web Service"
+2. Подключите репозиторий
+3. Настройки:
+   - **Name**: `synapse-api`
+   - **Environment**: `Python`
    - **Build Command**: `pip install -r backend/requirements.txt`
-   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port 10000`
-   - **Root Directory**: `backend`
-4. Добавьте переменные окружения из `.env`
+   - **Start Command**: `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - **Plan**: `Free`
+4. Добавьте переменные окружения:
+   - `DEEPSEEK_API_KEY` = ваш ключ
+   - `SECRET_KEY` = сгенерируйте случайную строку
+5. Нажмите "Create Web Service"
+
+#### Фронтенд (Static Site)
+
+1. На Render нажмите "New + → Static Site"
+2. Подключите репозиторий
+3. Настройки:
+   - **Name**: `synapse-frontend`
+   - **Build Command**: (оставьте пустым, т.к. у нас уже готовые файлы)
+   - **Publish Directory**: `frontend`
+4. Нажмите "Create Static Site"
+
+#### База данных PostgreSQL
+
+1. На Render нажмите "New + → PostgreSQL"
+2. Настройки:
+   - **Name**: `synapse-db`
+   - **Plan**: `Free`
+3. Нажмите "Create Database"
+4. Скопируйте строку подключения и добавьте как `DATABASE_URL` в переменные бэкенда
+
+## API Эндпоинты
+
+- `POST /auth/register` — регистрация
+- `POST /auth/token` — получение JWT токена
+- `GET /auth/me` — информация о текущем пользователе
+- `POST /chat` — чат с ИИ (требуется аутентификация)
+- `POST /chat/public` — публичный чат (без аутентификации)
+- `POST /agent/analyze` — анализ диалогов
+- `GET /agent/profile` — получение профиля
+- `GET /recommendations/matches` — поиск совпадений
+- `GET /recommendations/suggestions` — рекомендации
 
 ## Технологии
 
-- **Бэкенд**: Python, FastAPI, SQLAlchemy, JWT, Stripe
-- **Фронтенд**: HTML5, CSS3, JavaScript (Vanilla)
-- **ИИ**: DeepSeek API, LangChain (планируется)
-- **База данных**: SQLite (разработка), PostgreSQL (продакшн)
+- **Backend**: FastAPI, SQLAlchemy, JWT
+- **LLM**: DeepSeek API
+- **Database**: SQLite (локально) / PostgreSQL (продакшен)
+- **Frontend**: Vanilla JS, HTML5, CSS3
 
 ## Лицензия
 
