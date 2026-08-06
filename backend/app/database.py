@@ -11,6 +11,7 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, index=True)
+    hashed_password = Column(String, nullable=False)
     api_key = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
