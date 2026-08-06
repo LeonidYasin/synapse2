@@ -1,10 +1,10 @@
 services:
-  # Бэкенд API
+  # Бэкенд API — используем starter (бесплатный план для веб-сервисов)
   - type: web
     name: synapse-api
     runtime: python
     repo: https://github.com/LeonidYasin/synapse2
-    plan: free
+    plan: starter
     region: frankfurt
     buildCommand: pip install -r backend/requirements.txt
     startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
@@ -14,7 +14,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
 
-  # Фронтенд — убираем region, статическим сайтам он не нужен
+  # Фронтенд — статический сайт (бесплатный план)
   - type: web
     name: synapse-frontend
     runtime: static
