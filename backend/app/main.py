@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import chat, agent
+from .routers import chat, agent, auth
 
-app = FastAPI(title="Synapse API", version="0.1.0")
+app = FastAPI(title="Synapse API", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -12,6 +12,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(agent.router)
 
