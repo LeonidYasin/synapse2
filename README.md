@@ -97,10 +97,25 @@ python run.py
 - `GET /recommendations/matches` — поиск совпадений
 - `GET /recommendations/suggestions` — рекомендации
 
+## 🎯 Гранты для проекта
+
+Мы активно подаём заявки на грантовые программы для ИИ-стартапов. Это позволит нам получить бесплатные ресурсы (токены для LLM, GPU, облачный хостинг) и ускорить разработку.
+
+### Приоритетные гранты
+
+| Грант | Сумма | Что дают | Статус |
+|-------|-------|----------|--------|
+| [Modal for Startups](https://modal.com/startups) | $500–$50,000 | GPU для ML/AI | 🔄 В процессе |
+| [Google Cloud Startup](https://startup.google.com/cloud/) | $2,000–$350,000 | Облачные сервисы, AI/ML | ⏳ Планируется |
+| [Groq for Startups](https://groq.com/groq-for-startups) | $10,000 | Инференс LLM | ⏳ Планируется |
+| [Microsoft for Startups](https://www.microsoft.com/en-us/startups) | $1,000–$5,000 | Azure, AI, базы данных | ⏳ Планируется |
+
+**Подробности:** см. [GRANTS.md](./GRANTS.md)
+
 ## Технологии
 
 - **Backend**: FastAPI, SQLAlchemy, JWT
-- **LLM**: DeepSeek API
+- **LLM**: DeepSeek API (планируем Groq и Modal)
 - **Database**: SQLite (локально) / PostgreSQL (продакшен)
 - **Frontend**: Vanilla JS, HTML5, CSS3
 
