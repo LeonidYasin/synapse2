@@ -1,4 +1,5 @@
 services:
+  # Бэкенд API
   - type: web
     name: synapse-api
     runtime: python
@@ -17,17 +18,20 @@ services:
           name: synapse-db
           property: connectionString
 
-  - type: static
+  # Фронтенд — используем type: web с статической публикацией
+  - type: web
     name: synapse-frontend
+    runtime: static
     repo: https://github.com/LeonidYasin/synapse2
-    buildCommand: |
-      echo "Copying frontend files..."
-      cp -r frontend/* /opt/render/project/src/public/
-    staticPublishPath: /public
+    plan: free
+    region: frankfurt
+    buildCommand: echo "Static site ready"
+    staticPublishPath: frontend
     envVars:
       - key: API_URL
         value: https://synapse-api.onrender.com
 
+  # База данных PostgreSQL
   - type: postgresql
     name: synapse-db
     plan: free
