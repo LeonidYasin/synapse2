@@ -12,12 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const registerBtn = document.getElementById('registerBtn');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    // Определяем URL API: используем переменную окружения или localhost для разработки
+    // Определяем URL API — можно задать через переменную окружения или использовать по умолчанию
+    // Для мобильной версии нужно указать внешний URL бэкенда
     const API_BASE = window.API_URL || 'http://localhost:8000';
     let token = localStorage.getItem('token');
     let currentUser = localStorage.getItem('username');
 
-    // Функция для API запросов с авторизацией
     async function apiRequest(endpoint, method = 'GET', body = null) {
         const headers = {
             'Content-Type': 'application/json',
@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loginBtn.style.display = 'none';
         registerBtn.style.display = 'none';
         logoutBtn.style.display = 'inline-block';
-        // Добавляем имя пользователя, если его нет
         const userSpan = document.querySelector('.user-name');
         if (!userSpan) {
             const span = document.createElement('span');
@@ -77,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    // Регистрация
     registerBtn.addEventListener('click', async () => {
         const username = loginInput.value.trim();
         const password = passwordInput.value.trim();
@@ -102,7 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Вход
     loginBtn.addEventListener('click', async () => {
         const username = loginInput.value.trim();
         const password = passwordInput.value.trim();
@@ -138,7 +135,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Выход
     logoutBtn.addEventListener('click', () => {
         showLoggedOut();
         profileContent.innerHTML = '<p>Войдите в систему, чтобы увидеть свой профиль.</p>';
