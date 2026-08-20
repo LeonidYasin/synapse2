@@ -2,8 +2,13 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Синапс — ИИ-помощник</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2d3748">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+    <title>Синапс — ИИ-нетворкинг</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,7 +25,6 @@
                 </div>
                 <input type="text" id="apiKeyInput" placeholder="API-ключ (опционально)" />
                 <button id="analyzeBtn">Анализировать</button>
-                <button id="themeToggle">🌓</button>
             </div>
         </header>
         <main>
@@ -32,11 +36,11 @@
                 </div>
             </div>
             <div id="profileSidebar">
-                <h3>👤 Ваш профиль</h3>
+                <h3>Ваш профиль</h3>
                 <div id="profileContent">
                     <p>Войдите в систему, чтобы увидеть свой профиль.</p>
                 </div>
-                <h3>🔗 Рекомендации</h3>
+                <h3>Рекомендации</h3>
                 <div id="recommendationsContent">
                     <p>Войдите в систему для получения рекомендаций.</p>
                 </div>
@@ -44,5 +48,19 @@
         </main>
     </div>
     <script src="app.js"></script>
+    <script>
+        // Регистрация Service Worker для PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker зарегистрирован');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker ошибка:', err);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
