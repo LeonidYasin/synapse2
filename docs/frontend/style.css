@@ -1,0 +1,179 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body {
+    font-family: system-ui, sans-serif;
+    background: #f5f7fb;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+#app {
+    width: 90%;
+    max-width: 1200px;
+    height: 90vh;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+header {
+    padding: 20px 30px;
+    background: #ffffff;
+    border-bottom: 1px solid #eaeef2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.settings {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.settings input {
+    padding: 8px 15px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    width: 200px;
+}
+.settings button {
+    padding: 8px 20px;
+    background: #2d3748;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.settings button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+#chatContainer {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background: #f8fafc;
+}
+#messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.message {
+    max-width: 70%;
+    padding: 10px 16px;
+    border-radius: 16px;
+    line-height: 1.5;
+}
+.message.user {
+    align-self: flex-end;
+    background: #2d3748;
+    color: white;
+}
+.message.assistant {
+    align-self: flex-start;
+    background: #e2e8f0;
+    color: #1a202c;
+}
+#inputArea {
+    display: flex;
+    gap: 10px;
+    padding-top: 15px;
+}
+#inputArea textarea {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 12px;
+    resize: none;
+    font-family: inherit;
+}
+#inputArea button {
+    padding: 0 25px;
+    background: #2d3748;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+}
+#profileSidebar {
+    width: 320px;
+    background: #ffffff;
+    border-left: 1px solid #eaeef2;
+    padding: 20px;
+    overflow-y: auto;
+}
+#profileSidebar h3 {
+    margin: 12px 0 8px 0;
+    font-size: 16px;
+    color: #2d3748;
+}
+#profileSidebar h4 {
+    margin: 10px 0 5px 0;
+    font-size: 14px;
+    color: #2d3748;
+}
+#profileContent, #recommendationsContent {
+    font-size: 14px;
+    color: #4a5568;
+    margin-bottom: 16px;
+}
+#profileContent ul, #recommendationsContent ul {
+    padding-left: 20px;
+    margin: 5px 0;
+}
+#profileContent ul li, #recommendationsContent ul li {
+    margin-bottom: 3px;
+}
+.user-name {
+    margin-left: 10px;
+    color: #2d3748;
+    font-weight: 600;
+}
+@media (max-width: 768px) {
+    #app {
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+    }
+    header {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 15px;
+    }
+    .settings {
+        flex-wrap: wrap;
+    }
+    .settings input {
+        width: 100%;
+    }
+    #profileSidebar {
+        display: none;
+    }
+    #chatContainer {
+        padding: 10px;
+    }
+    .message {
+        max-width: 85%;
+    }
+    #inputArea textarea {
+        font-size: 16px;
+    }
+}
