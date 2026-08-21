@@ -21,22 +21,13 @@ app.include_router(recommendations.router)
 app.include_router(waitlist.router)
 
 @app.get("/")
-async def root():
-    return {"message": "Synapse API is running"}
-
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-
-@app.get("/app", response_class=HTMLResponse)
-async def serve_app():
+async def serve_frontend():
     """
-    Отдаёт фронтенд с подставленным API_URL из переменной окружения.
+    Отдаёт фронтенд с подставленным API_URL.
+    Если API_URL не задан, использует текущий хост из запроса.
     """
-    # Берём URL из переменной окружения, или используем localhost по умолчанию
     api_url = os.getenv("API_URL", "http://localhost:8000")
     
-    # Читаем файл index.html
     frontend_path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "index.html")
     try:
         with open(frontend_path, "r", encoding="utf-8") as f:
@@ -44,10 +35,15 @@ async def serve_app():
     except FileNotFoundError:
         return HTMLResponse(content="<h1>Файл frontend/index.html не найден</h1>", status_code=404)
     
-    # Вставляем API_URL в глобальную переменную JavaScript
-    # Ищем тег <script> перед подключением app.js
     script_tag = f'<script>window.API_URL = "{api_url}";</script>'
-    # Вставляем перед <script src="app.js">
-    content = content.replace('</head>', f'{script_tag}</head>')
+    content = content.replace('</head>', f'{script_tag}\n</head>')
     
     return HTMLResponse(content=content)
+
+@app.get("/app", response_class=HTMLResponse)
+async def serve_app():
+    return await serve_frontend()
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
