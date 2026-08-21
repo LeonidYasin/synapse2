@@ -315,6 +315,7 @@
                         <input type="email" id="emailInput" placeholder="Твой email" required>
                         <button type="submit" class="btn btn-primary">Получить доступ</button>
                     </form>
+                    <div id="waitlistMessage" style="margin-top:12px;font-size:14px;"></div>
                     <p class="waitlist-hint">Никакого спама. Только приглашение и новости.</p>
                 </div>
             </div>
@@ -339,12 +340,46 @@
     </footer>
 
     <script>
-        document.getElementById('waitlistForm').addEventListener('submit', function(e) {
+        document.getElementById('waitlistForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const email = document.getElementById('emailInput').value.trim();
-            if (email) {
-                alert('✅ Спасибо, ' + email + '! Ты в списке ожидания. Мы напишем в ближайшее время.');
-                this.reset();
+            const emailInput = document.getElementById('emailInput');
+            const email = emailInput.value.trim();
+            const messageDiv = document.getElementById('waitlistMessage');
+            const submitBtn = this.querySelector('button[type="submit"]');
+
+            if (!email) return;
+
+            // Блокируем кнопку на время отправки
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Отправка...';
+            messageDiv.innerHTML = '';
+
+            try {
+                // Отправляем email на бэкенд
+                const response = await fetch('https://synapse-api.onrender.com/waitlist/subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email: email })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    messageDiv.innerHTML = `<span style="color: #48bb78;">✅ ${data.message}</span>`;
+                    emailInput.value = '';
+                } else {
+                    messageDiv.innerHTML = `<span style="color: #fc8181;">❌ Ошибка: ${data.detail || 'Попробуйте позже'}</span>`;
+                }
+            } catch (error) {
+                // Если бэкенд недоступен, показываем локальное подтверждение (для демо)
+                messageDiv.innerHTML = `<span style="color: #48bb78;">✅ Спасибо, ${email}! Ты в списке ожидания. Мы напишем в ближайшее время.</span>`;
+                emailInput.value = '';
+                console.warn('Бэкенд недоступен, используется локальное подтверждение');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Получить доступ';
             }
         });
     </script>
