@@ -5,7 +5,6 @@ import re
 import os
 import sys
 
-
 def get_localtunnel_url(port=8000, timeout=30):
     """
     Запускает localtunnel и возвращает публичный URL.
@@ -61,15 +60,13 @@ def get_localtunnel_url(port=8000, timeout=30):
     
     return url
 
-
 def start_uvicorn():
     """Запускает FastAPI сервер"""
     print("[INFO] Запуск FastAPI сервера...")
     print("[INFO] Открой в браузере: http://localhost:8000/")
     api_url = os.getenv("API_URL", "не задан")
-    print(f"[INFO] Если localtunnel запущен, публичный адрес: {api_url}")
+    print(f"[INFO] Публичный адрес: {api_url}")
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
-
 
 if __name__ == "__main__":
     # Проверяем, не передан ли URL через аргумент командной строки
