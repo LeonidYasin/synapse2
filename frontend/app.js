@@ -12,11 +12,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const registerBtn = document.getElementById('registerBtn');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    // Определяем URL API — можно задать через переменную окружения или использовать по умолчанию
-    // Для мобильной версии нужно указать внешний URL бэкенда
+    // API_BASE определяется через переменную окружения или через window.API_URL
+    // Если ничего не задано — используем localhost
     const API_BASE = window.API_URL || 'http://localhost:8000';
     let token = localStorage.getItem('token');
     let currentUser = localStorage.getItem('username');
+
+    // Эмодзи для категорий
+    const categoryEmojis = {
+        'покупка': '🛒',
+        'продажа': '💰',
+        'услуги': '🚕',
+        'доставка': '📦',
+        'работа': '💼',
+        'партнёрство': '🤝',
+        'недвижимость': '🏠',
+        'креатив': '🎨',
+        'экспертиза': '🧠',
+        'личное': '💞',
+        'обучение': '📚',
+        'unknown': '🔍'
+    };
+
+    const intentionLabels = {
+        'buy': '🔍 Ищет купить',
+        'sell': '💰 Предлагает продать',
+        'find': '🔎 Ищет найти',
+        'offer': '📢 Предлагает услугу',
+        'unknown': '💬 Общий разговор'
+    };
 
     async function apiRequest(endpoint, method = 'GET', body = null) {
         const headers = {
@@ -192,11 +216,31 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await apiRequest('/agent/profile');
             if (response.ok) {
                 const data = await response.json();
-                profileContent.innerHTML = `
-                    <h4>Ключевые темы</h4>
-                    <ul>${(data.topics || []).map(t => `<li>${t}</li>`).join('') || '<li>Пока нет данных</li>'}</ul>
-                    <p><strong>Резюме:</strong> ${data.summary || 'Профиль формируется...'}</p>
-                `;
+                const topics = data.topics || [];
+                const category = data.category || 'unknown';
+                const intention = data.intention || 'unknown';
+                const location = data.location || null;
+                const budget = data.budget || null;
+                const urgency = data.urgency || null;
+
+                let html = '';
+                html += `<div style="background:#f0f4ff;padding:12px;border-radius:12px;margin-bottom:12px;">`;
+                html += `<strong>${categoryEmojis[category] || '🔍'} Категория:</strong> ${category || 'Не определена'}<br>`;
+                html += `<strong>${intentionLabels[intention] || '💬'}</strong>`;
+                if (location) html += `<br>📍 <strong>Локация:</strong> ${location}`;
+                if (budget) html += `<br>💰 <strong>Бюджет:</strong> ${budget}`;
+                if (urgency) html += `<br>⏱️ <strong>Срочность:</strong> ${urgency}`;
+                html += `</div>`;
+
+                if (topics.length > 0) {
+                    html += `<h4>📌 Ключевые темы</h4><ul>`;
+                    topics.forEach(t => { html += `<li>${t}</li>`; });
+                    html += `</ul>`;
+                }
+
+                html += `<p><strong>📝 Резюме:</strong> ${data.summary || 'Профиль формируется...'}</p>`;
+
+                profileContent.innerHTML = html;
             }
         } catch (error) {
             profileContent.innerHTML = '<p>Ошибка загрузки профиля</p>';
@@ -212,15 +256,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.length === 0) {
                     recommendationsContent.innerHTML = '<p>Пока нет совпадений. Продолжайте общаться с ИИ.</p>';
                 } else {
-                    recommendationsContent.innerHTML = `
-                        <h4>Совпадения</h4>
-                        ${data.slice(0, 5).map(m => `
+                    let html = '<h4>🔗 Совпадения</h4>';
+                    data.slice(0, 5).forEach(m => {
+                        const cat = m.category || 'unknown';
+                        html += `
                             <div style="border-bottom:1px solid #eee;padding:8px 0;">
-                                <strong>${m.user_id}</strong> — ${m.match_score}%
-                                <br><small>Общие темы: ${(m.common_topics || []).join(', ')}</small>
+                                <strong>${categoryEmojis[cat] || '👤'} ${m.user_id}</strong>
+                                — ${m.match_score}%<br>
+                                <small>📌 ${(m.common_topics || []).join(', ') || 'Общие интересы'}</small>
                             </div>
-                        `).join('')}
-                    `;
+                        `;
+                    });
+                    recommendationsContent.innerHTML = html;
                 }
             }
         } catch (error) {
@@ -240,6 +287,14 @@ document.addEventListener('DOMContentLoaded', () => {
             messages.push({ role, content: el.textContent });
         });
 
+        if (messages.length === 0) {
+            alert('Нет сообщений для анализа. Напишите что-нибудь в чат.');
+            return;
+        }
+
+        analyzeBtn.textContent = '⏳ Анализирую...';
+        analyzeBtn.disabled = true;
+
         try {
             const response = await apiRequest('/agent/analyze', 'POST', {
                 user_id: currentUser,
@@ -247,18 +302,42 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (response.ok) {
                 const data = await response.json();
-                profileContent.innerHTML = `
-                    <h4>Ключевые темы</h4>
-                    <ul>${(data.topics || []).map(t => `<li>${t}</li>`).join('') || '<li>Пока нет данных</li>'}</ul>
-                    <p><strong>Резюме:</strong> ${data.summary || 'Профиль формируется...'}</p>
-                `;
-                alert('Анализ завершён!');
+                const topics = data.topics || [];
+                const category = data.category || 'unknown';
+                const intention = data.intention || 'unknown';
+                const location = data.location || null;
+                const budget = data.budget || null;
+                const urgency = data.urgency || null;
+
+                let html = '';
+                html += `<div style="background:#f0f4ff;padding:12px;border-radius:12px;margin-bottom:12px;">`;
+                html += `<strong>${categoryEmojis[category] || '🔍'} Категория:</strong> ${category || 'Не определена'}<br>`;
+                html += `<strong>${intentionLabels[intention] || '💬'}</strong>`;
+                if (location) html += `<br>📍 <strong>Локация:</strong> ${location}`;
+                if (budget) html += `<br>💰 <strong>Бюджет:</strong> ${budget}`;
+                if (urgency) html += `<br>⏱️ <strong>Срочность:</strong> ${urgency}`;
+                html += `</div>`;
+
+                if (topics.length > 0) {
+                    html += `<h4>📌 Ключевые темы</h4><ul>`;
+                    topics.forEach(t => { html += `<li>${t}</li>`; });
+                    html += `</ul>`;
+                }
+
+                html += `<p><strong>📝 Резюме:</strong> ${data.summary || 'Профиль формируется...'}</p>`;
+
+                profileContent.innerHTML = html;
+                alert('✅ Анализ завершён! Профиль обновлён.');
+                loadRecommendations();
             } else {
                 const data = await response.json();
                 alert('Ошибка анализа: ' + (data.detail || 'Неизвестная ошибка'));
             }
         } catch (error) {
             alert('Сервер недоступен');
+        } finally {
+            analyzeBtn.textContent = 'Анализировать';
+            analyzeBtn.disabled = false;
         }
     });
 });
