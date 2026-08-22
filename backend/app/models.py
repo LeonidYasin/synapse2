@@ -1,7 +1,12 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Boolean, Float
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from pydantic import BaseModel, EmailStr
+from typing import Optional
+from datetime import datetime
 from .database import Base
+
+# ============ SQLAlchemy Models ============
 
 class User(Base):
     __tablename__ = "users"
@@ -59,3 +64,87 @@ class Waitlist(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(100), unique=True, index=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ============ Pydantic Models ============
+
+# Auth schemas
+class UserRegister(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+# Profile schemas
+class ProfileRequest(BaseModel):
+    name: Optional[str] = None
+    bio: Optional[str] = None
+    preferences: Optional[str] = None
+
+class ProfileResponse(BaseModel):
+    id: int
+    user_id: int
+    name: Optional[str] = None
+    bio: Optional[str] = None
+    preferences: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+# Chat schemas
+class ChatRequest(BaseModel):
+    dialogue_id: Optional[int] = None
+    message: str
+
+class ChatResponse(BaseModel):
+    response: str
+    dialogue_id: int
+
+class DialogueResponse(BaseModel):
+    id: int
+    title: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+class MessageResponse(BaseModel):
+    id: int
+    dialogue_id: int
+    role: str
+    content: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# Waitlist schemas
+class WaitlistRequest(BaseModel):
+    email: EmailStr
+
+class WaitlistResponse(BaseModel):
+    id: int
+    email: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
