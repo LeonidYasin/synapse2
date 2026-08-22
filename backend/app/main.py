@@ -26,15 +26,27 @@ app.include_router(agent.router)
 print("=== MAIN.PY LOADED ===")
 print(f"Routes registered: {[r.path for r in app.routes]}")
 
+# ТЕСТОВЫЙ ЭНДПОИНТ ПРЯМО В MAIN.PY
+@app.post("/test")
+async def test_post(request: Request):
+    print("=== TEST POST CALLED ===")
+    try:
+        body = await request.body()
+        print(f"Raw body: {body}")
+        data = json.loads(body)
+        print(f"Parsed: {data}")
+        return {"status": "ok", "data": data}
+    except Exception as e:
+        print(f"Error: {e}")
+        return JSONResponse(status_code=400, content={"error": str(e)})
+
 # Middleware для логирования - НЕ читает тело запроса
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     print(f"============================================================")
     print(f"[REQUEST] {request.method} {request.url.path}")
-    print(f"[REQUEST] Headers: {dict(request.headers)}")
     print(f"[REQUEST] Content-Type: {request.headers.get('content-type')}")
     
-    # Не читаем body здесь, чтобы не сломать эндпоинты
     response = await call_next(request)
     print(f"[RESPONSE] Status: {response.status_code}")
     return response
