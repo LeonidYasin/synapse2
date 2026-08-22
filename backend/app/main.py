@@ -1,17 +1,13 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-import json
+from fastapi.responses import FileResponse, JSONResponse
 import os
+import json
 
+# Импортируем роутеры
 from .routers import auth, recommendations, waitlist, agent
-from .routers import chat2 as chat
-from .database import engine, Base
 
-# Create tables
-Base.metadata.create_all(bind=engine)
-
-app = FastAPI(title="Synapse API", version="0.1.0")
+app = FastAPI(title="Synapse API", version="1.0.0")
 
 # CORS
 app.add_middleware(
@@ -22,59 +18,45 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Middleware для логирования (без чтения тела)
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    print("=" * 60)
-    print(f"[REQUEST] {request.method} {request.url.path}")
-    print(f"[REQUEST] Headers: {dict(request.headers)}")
-    print("=" * 60)
-    
-    response = await call_next(request)
-    print(f"[RESPONSE] Status: {response.status_code}")
-    return response
-
-# Routers - ДО статических файлов!
+# Регистрируем роутеры
 app.include_router(auth.router)
-app.include_router(chat.router)
 app.include_router(recommendations.router)
 app.include_router(waitlist.router)
 app.include_router(agent.router)
 
-# Static files (frontend) - ПОСЛЕ роутеров
-static_dir = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
-if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
-    # Для корневого пути используем отдельный эндпоинт
+# Проверка, что роутер загружен
+print("=== MAIN.PY LOADED ===")
+print(f"Routes registered: {[r.path for r in app.routes]}")
+
+# Middleware для логирования
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    body = await request.body()
+    print(f"============================================================")
+    print(f"[REQUEST] {request.method} {request.url.path}")
+    print(f"[REQUEST] Headers: {dict(request.headers)}")
+    try:
+        if body:
+            print(f"[REQUEST] Body: {body.decode('utf-8', errors='replace')}")
+        else:
+            print(f"[REQUEST] Body: (empty)")
+    except:
+        print(f"[REQUEST] Body: (binary)")
+    print(f"============================================================")
+    response = await call_next(request)
+    print(f"[RESPONSE] Status: {response.status_code}")
+    return response
+
+# Статика
+FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend")
 
 @app.get("/")
-async def serve_index():
-    from fastapi.responses import HTMLResponse
-    index_path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "index.html")
-    if os.path.exists(index_path):
-        with open(index_path, "r", encoding="utf-8") as f:
-            return HTMLResponse(f.read())
-    return {"status": "ok", "message": "Frontend not found"}
+async def index():
+    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 @app.get("/{path:path}")
-async def serve_static(path: str):
-    from fastapi.responses import FileResponse, HTMLResponse
-    import mimetypes
-    
-    frontend_dir = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
-    file_path = os.path.join(frontend_dir, path)
-    
+async def static_files(path: str):
+    file_path = os.path.join(FRONTEND_DIR, path)
     if os.path.exists(file_path) and os.path.isfile(file_path):
         return FileResponse(file_path)
-    
-    # Если файл не найден, пробуем index.html
-    index_path = os.path.join(frontend_dir, "index.html")
-    if os.path.exists(index_path):
-        with open(index_path, "r", encoding="utf-8") as f:
-            return HTMLResponse(f.read())
-    
-    return {"error": "File not found"}, 404
-
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
+    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
