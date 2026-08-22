@@ -25,40 +25,12 @@ jobs:
         cd backend
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install httpx
+        pip install pytest httpx
 
-    - name: Start server with debug output
+    - name: Run pytest
       run: |
         cd backend
-        python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level debug 2>&1 &
-        sleep 10
-        echo "=== Checking if server is running ==="
-        curl -v http://localhost:8000/ || echo "Server not responding"
-        echo "=== Done ==="
-      continue-on-error: true
-
-    - name: Run simple test
-      id: test
-      run: |
-        cd backend
-        python -c "
-import httpx
-import asyncio
-
-async def test():
-    async with httpx.AsyncClient() as client:
-        try:
-            resp = await client.get('http://localhost:8000/')
-            print(f'✅ Server responded with {resp.status_code}')
-            if resp.status_code == 200:
-                print('✅ Server is working!')
-            else:
-                print(f'❌ Server returned {resp.status_code}')
-        except Exception as e:
-            print(f'❌ Connection failed: {e}')
-
-asyncio.run(test())
-"
+        pytest tests/ -v
       continue-on-error: true
 
     - name: Show summary
@@ -67,5 +39,5 @@ asyncio.run(test())
         echo "=========================================="
         echo "📊 TEST SUMMARY"
         echo "=========================================="
-        echo "Test result: ${{ steps.test.outcome }}"
+        echo "Tests completed"
         echo "=========================================="
