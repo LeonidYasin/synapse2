@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from ..database import SessionLocal
 from ..models import User
@@ -11,10 +11,12 @@ from ..config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+print("[AUTH] MODULE LOADED")
+
 class UserRegister(BaseModel):
-    username: str = Field(..., min_length=2, max_length=50)
-    email: str = Field(..., min_length=3, max_length=100)  # Просто строка, без EmailStr
-    password: str = Field(..., min_length=4, max_length=72)
+    username: str
+    email: str
+    password: str
 
 class UserResponse(BaseModel):
     id: int
@@ -32,7 +34,6 @@ def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     log(f"Email: {user.email}")
     log(f"Password length: {len(user.password)}")
     
-    # Проверяем, существует ли пользователь
     log("Checking if user exists...")
     existing_user = db.query(User).filter(
         (User.username == user.username) | (User.email == user.email)
@@ -40,7 +41,6 @@ def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     
     if existing_user:
         log(f"User exists: {existing_user.username} (id={existing_user.id})")
-        # Если пользователь уже существует, проверяем пароль
         log("Verifying password...")
         if verify_password(user.password, existing_user.hashed_password):
             log("Password correct, logging in existing user")
@@ -61,7 +61,6 @@ def register(user: UserRegister, db: Session = Depends(SessionLocal)):
                 detail="Username or email already registered with different password"
             )
     
-    # Создаём нового пользователя
     log("Creating new user...")
     hashed_password = get_password_hash(user.password)
     db_user = User(
@@ -74,7 +73,6 @@ def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     db.refresh(db_user)
     log(f"User created with id={db_user.id}")
     
-    # Выдаём токен
     log("Creating access token...")
     access_token = create_access_token(
         data={"sub": db_user.username}
