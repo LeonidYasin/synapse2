@@ -4,7 +4,7 @@ from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from .database import SessionLocal
+from .database import get_db
 from .models import User
 from .config import settings
 
@@ -45,7 +45,8 @@ def authenticate_user(db: Session, username: str, password: str):
     return user
 
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(SessionLocal)):
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    print(f"🔍 get_current_user called with token: {token[:20]}..." if token else "🔍 get_current_user called with no token")
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -54,11 +55,15 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
+        print(f"🔍 Decoded token: username={username}")
         if username is None:
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        print(f"❌ JWT Error: {e}")
         raise credentials_exception
     user = db.query(User).filter(User.username == username).first()
     if user is None:
+        print(f"❌ User not found: {username}")
         raise credentials_exception
+    print(f"✅ User found: {user.username}")
     return user
