@@ -1,130 +1,56 @@
 import json
-import datetime
-from collections import Counter
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
+from ..models import Profile, Dialogue, User
 from ..database import SessionLocal
-from ..models import Profile, Dialogue
-from ..utils.llm_client import call_deepseek
 
 class AgentScanner:
-    """
-    Агент-сканер для анализа диалогов и построения профиля пользователя.
-    Использует LLM для извлечения сущностей, эмоций, намерений и тем.
-    """
+    """Сканер для анализа профилей пользователей и диалогов"""
     
-    def __init__(self, user_id: str):
-        self.user_id = user_id
-        self.db = SessionLocal()
-        
-    def get_dialogues(self) -> List[Dict]:
-        """Получает все диалоги пользователя из БД"""
-        dialogues = self.db.query(Dialogue).filter(
-            Dialogue.user_id == self.user_id
-        ).order_by(Dialogue.timestamp).all()
-        return [{"role": d.role, "content": d.content} for d in dialogues]
+    def __init__(self, db: Session = None):
+        self.db = db or SessionLocal()
     
-    async def analyze_with_llm(self, dialogues: List[Dict]) -> Dict[str, Any]:
-        """
-        Анализирует диалоги с помощью LLM и возвращает структурированный профиль.
-        """
-        if not dialogues:
-            return {"topics": [], "summary": "Нет диалогов для анализа", "entities": [], "intentions": []}
-        
-        # Формируем текст для анализа
-        full_text = "\n".join([f"{d['role']}: {d['content']}" for d in dialogues[-20:]])
-        
-        prompt = f"""
-        Проанализируй следующие диалоги пользователя. Извлеки:
-        1. Ключевые темы (5-7 тем, которые чаще всего обсуждаются)
-        2. Сущности (люди, компании, технологии, проекты)
-        3. Намерения (что хочет пользователь: найти партнёра, инвестора, продать продукт, найти решение проблемы)
-        4. Краткое резюме (2-3 предложения о том, кто этот пользователь и что его интересует)
-        
-        Диалоги:
-        {full_text}
-        
-        Ответь в формате JSON:
-        {{
-            "topics": ["тема1", "тема2", ...],
-            "entities": ["сущность1", "сущность2", ...],
-            "intentions": ["намерение1", "намерение2", ...],
-            "summary": "краткое резюме"
-        }}
-        """
-        
-        try:
-            messages = [{"role": "user", "content": prompt}]
-            response = await call_deepseek(
-                messages=messages,
-                model="deepseek-chat",
-                temperature=0.3,
-                max_tokens=500
-            )
-            
-            # Парсим JSON из ответа
-            content = response.get("content", "{}")
-            # Ищем JSON в ответе
-            import re
-            json_match = re.search(r'\{.*\}', content, re.DOTALL)
-            if json_match:
-                result = json.loads(json_match.group())
-                return result
-            else:
-                # Если JSON не найден, используем простой анализ
-                return self._simple_analysis(dialogues)
-        except Exception as e:
-            print(f"LLM analysis error: {e}")
-            return self._simple_analysis(dialogues)
-    
-    def _simple_analysis(self, dialogues: List[Dict]) -> Dict[str, Any]:
-        """Простой анализ без LLM (запасной вариант)"""
-        full_text = " ".join([d["content"] for d in dialogues])
-        words = full_text.split()
-        counter = Counter(words)
-        top_topics = [word for word, _ in counter.most_common(5) if len(word) > 3]
+    def scan_profile(self, user_id: int) -> Dict[str, Any]:
+        """Сканирует профиль пользователя и возвращает анализ"""
+        profile = self.db.query(Profile).filter(Profile.user_id == user_id).first()
+        if not profile:
+            return {"error": "Profile not found"}
         
         return {
-            "topics": top_topics,
-            "entities": [],
-            "intentions": [],
-            "summary": f"Основные темы диалогов: {', '.join(top_topics)}"
+            "user_id": user_id,
+            "topics": json.loads(profile.topics) if profile.topics else [],
+            "summary": profile.summary,
+            "entities": json.loads(profile.entities) if profile.entities else [],
+            "intentions": json.loads(profile.intentions) if profile.intentions else []
         }
     
-    async def scan_and_update_profile(self) -> Dict[str, Any]:
-        """
-        Основной метод: сканирует диалоги, обновляет профиль пользователя.
-        """
-        dialogues = self.get_dialogues()
-        if not dialogues:
-            return {"status": "no_dialogues", "message": "Диалоги не найдены"}
+    def scan_dialogues(self, user_id: int) -> List[Dict[str, Any]]:
+        """Сканирует диалоги пользователя"""
+        dialogues = self.db.query(Dialogue).filter(Dialogue.user_id == user_id).all()
+        result = []
+        for dialogue in dialogues:
+            result.append({
+                "id": dialogue.id,
+                "title": dialogue.title,
+                "messages": json.loads(dialogue.messages) if dialogue.messages else []
+            })
+        return result
+    
+    def get_user_context(self, user_id: int) -> Dict[str, Any]:
+        """Получает полный контекст пользователя"""
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {"error": "User not found"}
         
-        # Анализируем диалоги
-        analysis = await self.analyze_with_llm(dialogues)
-        
-        # Сохраняем профиль
-        profile = Profile(
-            user_id=self.user_id,
-            topics=json.dumps(analysis.get("topics", [])),
-            summary=analysis.get("summary", ""),
-            updated_at=datetime.datetime.utcnow()
-        )
-        self.db.merge(profile)
-        self.db.commit()
-        
-        # Сохраняем также дополнительные данные (можно расширить)
-        # Здесь можно добавить сохранение entities и intentions в отдельные таблицы
-        
-        self.db.close()
+        profile_data = self.scan_profile(user_id)
+        dialogues = self.scan_dialogues(user_id)
         
         return {
-            "status": "success",
-            "topics": analysis.get("topics", []),
-            "entities": analysis.get("entities", []),
-            "intentions": analysis.get("intentions", []),
-            "summary": analysis.get("summary", "")
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "full_name": user.full_name
+            },
+            "profile": profile_data,
+            "dialogues": dialogues
         }
-    
-    def __del__(self):
-        if hasattr(self, 'db'):
-            self.db.close()
