@@ -15,7 +15,7 @@ let state = {
 // DOM Elements
 const app = document.getElementById('app');
 
-// Логирование
+// Logging
 function log(message, data) {
     console.log(`[FRONTEND] ${message}`, data || '');
 }
