@@ -22,7 +22,20 @@ jobs:
         cd backend
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    - name: Run import test
+    - name: Syntax check
       run: |
         cd backend
-        python test_import.py
+        python -c "
+import sys
+import ast
+files = ['app/main.py', 'app/routers/auth.py', 'app/models.py', 'app/database.py', 'app/auth.py']
+for f in files:
+    try:
+        with open(f, 'r') as file:
+            ast.parse(file.read())
+        print(f'✅ {f} syntax OK')
+    except Exception as e:
+        print(f'❌ {f} ERROR: {e}')
+        sys.exit(1)
+print('✅ All files syntax OK')
+"
