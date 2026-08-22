@@ -15,14 +15,8 @@ let state = {
 // DOM Elements
 const app = document.getElementById('app');
 
-// Logging
-function log(message, data) {
-    console.log(`[FRONTEND] ${message}`, data || '');
-}
-
 // Navigation
 function navigateTo(view) {
-    log('Navigating to:', view);
     state.currentView = view;
     render();
 }
@@ -31,51 +25,34 @@ window.navigateTo = navigateTo;
 // API calls
 async function apiCall(endpoint, options = {}) {
     const url = `${API_URL}${endpoint}`;
-    log(`API call: ${options.method || 'GET'} ${endpoint}`);
-    
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers
     };
     if (state.token) {
         headers['Authorization'] = `Bearer ${state.token}`;
-        log('Token present:', state.token.substring(0, 20) + '...');
     }
-    
     const response = await fetch(url, {
         ...options,
         headers
     });
-    
-    log(`Response status: ${response.status}`);
-    
     let data;
     try {
         data = await response.json();
-        log('Response data:', data);
     } catch {
         data = { detail: 'Invalid response from server' };
-        log('Invalid response');
     }
-    
     if (!response.ok) {
         const errorMsg = typeof data === 'string' ? data : (data.detail || JSON.stringify(data) || 'Unknown error');
-        log(`Error: ${errorMsg}`);
         throw new Error(errorMsg);
     }
-    
     return data;
 }
 
-// Auth functions
+// Auth functions - используем новый эндпоинт /auth/register2
 async function register(username, email, password) {
-    log('=== REGISTER START ===');
-    log('Username:', username);
-    log('Email:', email);
-    log('Password length:', password.length);
-    
     try {
-        const data = await apiCall('/auth/register', {
+        const data = await apiCall('/auth/register2', {
             method: 'POST',
             body: JSON.stringify({ 
                 username: username.trim(), 
@@ -83,30 +60,21 @@ async function register(username, email, password) {
                 password: password 
             })
         });
-        
         if (data.access_token) {
             state.token = data.access_token;
             localStorage.setItem('token', state.token);
-            log('Token saved:', data.token_type || 'bearer');
             await loadUser();
             render();
-            log('=== REGISTER SUCCESS ===');
             return { success: true, message: data.message || 'Registered successfully' };
         } else {
-            log('No token received');
             return { success: false, error: 'No token received' };
         }
     } catch (error) {
-        log('Register error:', error.message);
         return { success: false, error: error.message };
     }
 }
 
 async function login(username, password) {
-    log('=== LOGIN START ===');
-    log('Username:', username);
-    log('Password length:', password.length);
-    
     try {
         const formData = new URLSearchParams();
         formData.append('username', username.trim());
@@ -118,27 +86,21 @@ async function login(username, password) {
             },
             body: formData
         });
-        
         if (data.access_token) {
             state.token = data.access_token;
             localStorage.setItem('token', state.token);
-            log('Token saved:', data.token_type || 'bearer');
             await loadUser();
             render();
-            log('=== LOGIN SUCCESS ===');
             return { success: true };
         } else {
-            log('No token received');
             return { success: false, error: 'No token received' };
         }
     } catch (error) {
-        log('Login error:', error.message);
         return { success: false, error: error.message };
     }
 }
 
 function logout() {
-    log('Logout');
     state.token = null;
     state.user = null;
     localStorage.removeItem('token');
@@ -147,13 +109,10 @@ function logout() {
 window.logout = logout;
 
 async function loadUser() {
-    log('Loading user...');
     try {
         state.user = await apiCall('/auth/me');
-        log('User loaded:', state.user);
         return true;
     } catch (error) {
-        log('Failed to load user:', error.message);
         state.user = null;
         state.token = null;
         localStorage.removeItem('token');
@@ -163,7 +122,6 @@ async function loadUser() {
 
 // Render functions
 function render() {
-    log('Render: token=' + !!state.token + ', user=' + !!state.user);
     if (!state.token || !state.user) {
         renderAuth();
         return;
@@ -173,8 +131,6 @@ function render() {
 
 function renderAuth() {
     const isLogin = state.currentView === 'login';
-    log('Render auth: isLogin=' + isLogin);
-    
     app.innerHTML = `
         <div class="auth-container">
             <div class="auth-card">
@@ -214,8 +170,6 @@ function renderAuth() {
         const password = document.getElementById('password').value;
         const errorEl = document.getElementById('auth-error');
         
-        log('Form submit: username=' + username + ', password length=' + password.length);
-        
         if (!username || username.length < 2) {
             errorEl.textContent = 'Имя пользователя должно содержать минимум 2 символа';
             errorEl.style.display = 'block';
@@ -243,16 +197,13 @@ function renderAuth() {
         if (!result.success) {
             errorEl.textContent = result.error || 'Произошла ошибка';
             errorEl.style.display = 'block';
-            log('Auth error:', result.error);
         } else {
             errorEl.style.display = 'none';
-            log('Auth success, result:', result);
         }
     });
 }
 
 function renderApp() {
-    log('Render app');
     app.innerHTML = `
         <div class="app-container">
             <header class="app-header">
@@ -311,7 +262,7 @@ async function startNewChat() {
         await loadDialogues();
         render();
     } catch (error) {
-        log('Failed to create chat:', error);
+        console.error('Failed to create chat:', error);
     }
 }
 window.startNewChat = startNewChat;
@@ -330,7 +281,7 @@ async function loadDialogue(id) {
         state.messages = await apiCall(`/chat/${id}`);
         render();
     } catch (error) {
-        log('Failed to load dialogue:', error);
+        console.error('Failed to load dialogue:', error);
     }
 }
 window.loadDialogue = loadDialogue;
@@ -363,22 +314,17 @@ window.sendMessage = sendMessage;
 
 // Initialize
 async function init() {
-    log('=== INIT START ===');
     if (state.token) {
-        log('Token found in localStorage');
         const ok = await loadUser();
         if (!ok) {
             state.token = null;
             localStorage.removeItem('token');
         }
-    } else {
-        log('No token found');
     }
     if (state.user) {
         await loadDialogues();
     }
     render();
-    log('=== INIT COMPLETE ===');
 }
 
 window.API_URL = API_URL;
