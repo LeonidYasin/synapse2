@@ -15,12 +15,12 @@ class UserCreate(BaseModel):
     username: str
     password: str
 
+class UserResponse(BaseModel):
+    username: str
+
 class Token(BaseModel):
     access_token: str
     token_type: str
-
-class UserResponse(BaseModel):
-    username: str
 
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate):
