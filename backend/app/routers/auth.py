@@ -1,5 +1,4 @@
-# VERSION: 2026-08-22-v3-FINAL-FIX
-# This file should show [AUTH] logs for /auth/register
+# VERSION: 2026-08-22-v7-TEST-NEW-ENDPOINT
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
@@ -13,20 +12,19 @@ from ..auth import get_password_hash, verify_password, create_access_token, get_
 from ..config import settings
 
 print("=" * 60)
-print("[AUTH] ROUTER LOADED - VERSION: 2026-08-22-v3-FINAL-FIX")
-print("[AUTH] This version has /auth/register with raw JSON handler")
+print("[AUTH] ROUTER LOADED - VERSION: 2026-08-22-v7-TEST-NEW-ENDPOINT")
 print("=" * 60)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 def log(msg):
-    print(f"[AUTH] {msg}")
+    print(f"[AUTH] {msg}", flush=True)
 
-# ТЕСТОВЫЙ ЭНДПОИНТ - РАБОТАЕТ
-@router.post("/test-raw")
-async def test_raw(request: Request):
+# НОВЫЙ ТЕСТОВЫЙ ЭНДПОИНТ - /auth/register2
+@router.post("/register2")
+async def register2(request: Request):
     log("=" * 50)
-    log("TEST-RAW ENDPOINT CALLED")
+    log("REGISTER2 ENDPOINT CALLED - TEST")
     body = await request.body()
     log(f"Raw body: {body}")
     try:
@@ -35,17 +33,17 @@ async def test_raw(request: Request):
         data = json.loads(decoded)
         log(f"Parsed: {data}")
         log("=" * 50)
-        return {"status": "ok", "data": data}
+        return {"status": "ok", "data": data, "endpoint": "/auth/register2"}
     except Exception as e:
         log(f"Error: {e}")
         log("=" * 50)
-        return {"status": "error", "error": str(e), "body": body.decode('utf-8', errors='replace')}
+        return {"status": "error", "error": str(e)}
 
-# РЕГИСТРАЦИЯ - ТОЧНО ТАКОЙ ЖЕ КАК test-raw
+# Оригинальный /auth/register - копия register2
 @router.post("/register")
 async def register(request: Request, db: Session = Depends(SessionLocal)):
     log("=" * 50)
-    log("REGISTER ENDPOINT CALLED (v3-FINAL-FIX)")
+    log("REGISTER ENDPOINT CALLED (v7)")
     body = await request.body()
     log(f"Raw body: {body}")
     try:
@@ -119,6 +117,25 @@ async def register(request: Request, db: Session = Depends(SessionLocal)):
     except Exception as e:
         log(f"Unexpected error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Остальные эндпоинты...
+@router.post("/test-raw")
+async def test_raw(request: Request):
+    log("=" * 50)
+    log("TEST-RAW ENDPOINT CALLED")
+    body = await request.body()
+    log(f"Raw body: {body}")
+    try:
+        decoded = body.decode('utf-8')
+        log(f"Decoded: {decoded}")
+        data = json.loads(decoded)
+        log(f"Parsed: {data}")
+        log("=" * 50)
+        return {"status": "ok", "data": data}
+    except Exception as e:
+        log(f"Error: {e}")
+        log("=" * 50)
+        return {"status": "error", "error": str(e), "body": body.decode('utf-8', errors='replace')}
 
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(SessionLocal)):
