@@ -19,6 +19,7 @@ class User(Base):
     # Relationships
     messages = relationship("Message", back_populates="user", cascade="all, delete-orphan")
     recommendations = relationship("Recommendation", back_populates="user", cascade="all, delete-orphan")
+    dialogues = relationship("Dialogue", back_populates="user", cascade="all, delete-orphan")
 
 class Message(Base):
     __tablename__ = "messages"
@@ -45,7 +46,20 @@ class Recommendation(Base):
 
     user = relationship("User", back_populates="recommendations")
 
-# Pydantic schemas for API (оставляем для обратной совместимости)
+class Dialogue(Base):
+    __tablename__ = "dialogues"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(255), nullable=True)
+    messages = Column(Text, nullable=True)  # JSON stored as text
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    user = relationship("User", back_populates="dialogues")
+
+# Pydantic schemas for API
 from pydantic import BaseModel
 from typing import List, Optional
 
