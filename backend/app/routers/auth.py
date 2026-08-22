@@ -1,3 +1,6 @@
+# VERSION: 2026-08-22-v3-FINAL-FIX
+# This file should show [AUTH] logs for /auth/register
+
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -8,6 +11,11 @@ from ..database import SessionLocal
 from ..models import User
 from ..auth import get_password_hash, verify_password, create_access_token, get_current_user, authenticate_user
 from ..config import settings
+
+print("=" * 60)
+print("[AUTH] ROUTER LOADED - VERSION: 2026-08-22-v3-FINAL-FIX")
+print("[AUTH] This version has /auth/register with raw JSON handler")
+print("=" * 60)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -37,7 +45,7 @@ async def test_raw(request: Request):
 @router.post("/register")
 async def register(request: Request, db: Session = Depends(SessionLocal)):
     log("=" * 50)
-    log("REGISTER ENDPOINT CALLED (IDENTICAL TO test-raw)")
+    log("REGISTER ENDPOINT CALLED (v3-FINAL-FIX)")
     body = await request.body()
     log(f"Raw body: {body}")
     try:
@@ -46,7 +54,6 @@ async def register(request: Request, db: Session = Depends(SessionLocal)):
         data = json.loads(decoded)
         log(f"Parsed: {data}")
         
-        # Извлекаем данные
         username = data.get("username", "").strip()
         email = data.get("email", "").strip()
         password = data.get("password", "")
@@ -55,7 +62,6 @@ async def register(request: Request, db: Session = Depends(SessionLocal)):
         log(f"Email: {email}")
         log(f"Password length: {len(password)}")
         
-        # Валидация
         if not username or len(username) < 2:
             raise HTTPException(status_code=400, detail="Username must be at least 2 characters")
         if not email or "@" not in email:
@@ -63,7 +69,6 @@ async def register(request: Request, db: Session = Depends(SessionLocal)):
         if not password or len(password) < 4:
             raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
         
-        # Проверка существующего пользователя
         existing_user = db.query(User).filter(
             (User.username == username) | (User.email == email)
         ).first()
@@ -84,7 +89,6 @@ async def register(request: Request, db: Session = Depends(SessionLocal)):
                     detail="Username or email already registered with different password"
                 )
         
-        # Создание пользователя
         log("Creating new user...")
         hashed_password = get_password_hash(password)
         db_user = User(
