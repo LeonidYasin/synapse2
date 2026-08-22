@@ -49,10 +49,15 @@ async function apiCall(endpoint, options = {}) {
     return data;
 }
 
-// Auth functions - используем новый эндпоинт /auth/register2
+// Auth functions
 async function register(username, email, password) {
+    console.log('[REGISTER] username:', username);
+    console.log('[REGISTER] email:', email);
+    console.log('[REGISTER] password length:', password.length);
+    console.log('[REGISTER] password chars:', Array.from(password).map(c => c.charCodeAt(0)));
+    
     try {
-        const data = await apiCall('/auth/register2', {
+        const data = await apiCall('/auth/register', {
             method: 'POST',
             body: JSON.stringify({ 
                 username: username.trim(), 
@@ -65,7 +70,7 @@ async function register(username, email, password) {
             localStorage.setItem('token', state.token);
             await loadUser();
             render();
-            return { success: true, message: data.message || 'Registered successfully' };
+            return { success: true };
         } else {
             return { success: false, error: 'No token received' };
         }
@@ -113,6 +118,7 @@ async function loadUser() {
         state.user = await apiCall('/auth/me');
         return true;
     } catch (error) {
+        console.error('Failed to load user:', error);
         state.user = null;
         state.token = null;
         localStorage.removeItem('token');
@@ -149,7 +155,7 @@ function renderAuth() {
                     ` : ''}
                     <div class="form-group">
                         <label for="password">Пароль</label>
-                        <input type="password" id="password" placeholder="••••••••" required minlength="4">
+                        <input type="password" id="password" placeholder="••••••••" required>
                     </div>
                     <button type="submit" class="btn-primary">${isLogin ? 'Войти' : 'Зарегистрироваться'}</button>
                 </form>
