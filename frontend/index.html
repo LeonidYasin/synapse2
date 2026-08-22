@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="/style.css?v=2" />
     <script>
         // Полная очистка кэша
-        console.log('=== PAGE LOADED ===');
+        console.log('=== PAGE LOADED (NEW VERSION) ===');
         
         // Удаляем все Service Workers
         if ('serviceWorker' in navigator) {
@@ -40,12 +40,6 @@
 </head>
 <body>
     <div id="app"></div>
-    <script>
-        // Принудительная загрузка с уникальным параметром
-        const script = document.createElement('script');
-        script.src = '/app.js?' + Date.now();
-        document.body.appendChild(script);
-        console.log('Script loaded with cache-busting:', script.src);
-    </script>
+    <script src="/main.js"></script>
 </body>
 </html>
