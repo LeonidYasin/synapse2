@@ -104,21 +104,20 @@ if __name__ == "__main__":
     print("[INFO] Запуск скрипта run.py")
     print(f"[DEBUG] Аргументы командной строки: {sys.argv}")
     
-    # === ПРАВИЛЬНЫЙ ПОРЯДОК ===
-    # 1. Сначала получаем URL
+    # ПРАВИЛЬНЫЙ ПОРЯДОК: СНАЧАЛА ПОЛУЧАЕМ URL, ПОТОМ ЗАПУСКАЕМ СЕРВЕР
     if len(sys.argv) > 1 and sys.argv[1].startswith("--url="):
         url = sys.argv[1].split("=")[1]
         os.environ["API_URL"] = url
         print(f"[INFO] Используется переданный URL: {url}")
     else:
-        # Запускаем localtunnel и ЖДЁМ получения URL
+        # Запускаем localtunnel и ждём получения URL
         url = get_localtunnel_url(8000)
         if url:
             print("[INFO] Туннель успешно создан, продолжаем...")
         else:
             print("[INFO] Туннель не создан, но продолжаем с localhost...")
     
-    # 2. Только ПОСЛЕ получения URL запускаем uvicorn
+    # ТОЛЬКО ПОСЛЕ ПОЛУЧЕНИЯ URL ЗАПУСКАЕМ UVICORN
     try:
         start_uvicorn()
     except KeyboardInterrupt:
