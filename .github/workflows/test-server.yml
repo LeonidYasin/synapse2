@@ -25,7 +25,7 @@ jobs:
         cd backend
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install httpx pytest
+        pip install httpx
 
     - name: Start server
       run: |
@@ -33,11 +33,26 @@ jobs:
         python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
         sleep 5
 
-    - name: Run tests
-      id: tests
+    - name: Test API
+      id: api-tests
       run: |
         cd backend
         python test_server.py
+      continue-on-error: true
+
+    - name: Setup Node for frontend tests
+      if: always()
+      run: |
+        cd frontend
+        npm init -y
+        npm install playwright
+        npx playwright install chromium
+
+    - name: Test frontend with Playwright
+      if: always()
+      run: |
+        cd frontend
+        node test-frontend.js
       continue-on-error: true
 
     - name: Show summary
@@ -46,5 +61,5 @@ jobs:
         echo "=========================================="
         echo "📊 TEST SUMMARY"
         echo "=========================================="
-        echo "Status: ${{ steps.tests.outcome }}"
+        echo "API Tests: ${{ steps.api-tests.outcome }}"
         echo "=========================================="
