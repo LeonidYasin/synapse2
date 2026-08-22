@@ -1,4 +1,3 @@
-import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -9,10 +8,6 @@ from ..database import SessionLocal
 from ..models import User
 from ..auth import get_password_hash, verify_password, create_access_token, get_current_user, authenticate_user
 from ..config import settings
-
-# Настройка логирования
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -26,40 +21,51 @@ class UserResponse(BaseModel):
     username: str
     email: str
 
+# Простой логгер через print
+print("=== AUTH ROUTER LOADED ===")
+
+def log(msg):
+    print(f"[AUTH] {msg}")
+
 @router.post("/register")
 def register(user: UserRegister, db: Session = Depends(SessionLocal)):
-    logger.info(f"=== REGISTRATION START ===")
-    logger.info(f"Username: {user.username}")
-    logger.info(f"Email: {user.email}")
-    logger.info(f"Password length: {len(user.password)}")
+    log("=" * 50)
+    log("REGISTER ENDPOINT CALLED")
+    log(f"Username: {user.username}")
+    log(f"Email: {user.email}")
+    log(f"Password length: {len(user.password)}")
     
     # Проверяем, существует ли пользователь
+    log("Checking if user exists...")
     existing_user = db.query(User).filter(
         (User.username == user.username) | (User.email == user.email)
     ).first()
     
     if existing_user:
-        logger.info(f"User exists: {existing_user.username} (id={existing_user.id})")
-        # Если пользователь уже существует, проверяем пароль и выдаём токен
+        log(f"User exists: {existing_user.username} (id={existing_user.id})")
+        # Если пользователь уже существует, проверяем пароль
+        log("Verifying password...")
         if verify_password(user.password, existing_user.hashed_password):
-            logger.info("Password correct, logging in existing user")
+            log("Password correct, logging in existing user")
             access_token = create_access_token(
                 data={"sub": existing_user.username}
             )
+            log("=" * 50)
             return {
                 "access_token": access_token,
                 "token_type": "bearer",
                 "message": "Welcome back!"
             }
         else:
-            logger.warning("Password incorrect for existing user")
+            log("Password incorrect for existing user")
+            log("=" * 50)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Username or email already registered with different password"
             )
     
     # Создаём нового пользователя
-    logger.info("Creating new user...")
+    log("Creating new user...")
     hashed_password = get_password_hash(user.password)
     db_user = User(
         username=user.username,
@@ -69,13 +75,16 @@ def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    logger.info(f"User created with id={db_user.id}")
+    log(f"User created with id={db_user.id}")
     
     # Выдаём токен
+    log("Creating access token...")
     access_token = create_access_token(
         data={"sub": db_user.username}
     )
-    logger.info("=== REGISTRATION SUCCESS ===")
+    log("=" * 50)
+    log("REGISTER SUCCESS")
+    log("=" * 50)
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -84,23 +93,25 @@ def register(user: UserRegister, db: Session = Depends(SessionLocal)):
 
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(SessionLocal)):
-    logger.info(f"=== LOGIN START ===")
-    logger.info(f"Username: {form_data.username}")
+    log("=" * 50)
+    log("LOGIN ENDPOINT CALLED")
+    log(f"Username: {form_data.username}")
     
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
-        logger.warning("Login failed: invalid credentials")
+        log("Login failed: invalid credentials")
+        log("=" * 50)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    logger.info(f"Login successful for user: {user.username} (id={user.id})")
+    log(f"Login successful for user: {user.username} (id={user.id})")
     access_token = create_access_token(
         data={"sub": user.username}
     )
-    logger.info("=== LOGIN SUCCESS ===")
+    log("=" * 50)
     return {
         "access_token": access_token,
         "token_type": "bearer"
@@ -108,8 +119,10 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 @router.get("/me", response_model=UserResponse)
 def read_users_me(current_user: User = Depends(get_current_user)):
-    logger.info(f"=== GET /me ===")
-    logger.info(f"Current user: {current_user.username} (id={current_user.id})")
+    log("=" * 50)
+    log("GET /me CALLED")
+    log(f"Current user: {current_user.username} (id={current_user.id})")
+    log("=" * 50)
     return UserResponse(
         id=current_user.id,
         username=current_user.username,
