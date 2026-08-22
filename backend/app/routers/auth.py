@@ -12,8 +12,7 @@ from ..config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-print("[AUTH] Router created with prefix /auth")
-
+# Простая модель без валидации
 class UserRegister(BaseModel):
     username: str
     email: str
@@ -27,14 +26,24 @@ class UserResponse(BaseModel):
 def log(msg):
     print(f"[AUTH] {msg}")
 
-# Тестовый эндпоинт для проверки работы роутера
-@router.get("/test")
-async def test():
+# ТЕСТОВЫЙ ЭНДПОИНТ - принимает любые данные
+@router.post("/test")
+async def test_endpoint(request: Request):
+    body = await request.body()
+    log("=" * 50)
     log("TEST ENDPOINT CALLED")
-    return {"status": "ok", "message": "Auth router is working"}
+    log(f"Raw body: {body}")
+    try:
+        data = json.loads(body)
+        log(f"Parsed data: {data}")
+        log(f"Keys: {list(data.keys())}")
+    except:
+        log("Could not parse JSON")
+    log("=" * 50)
+    return {"status": "ok", "received": body.decode('utf-8')}
 
 @router.post("/register")
-async def register(user: UserRegister, db: Session = Depends(SessionLocal)):
+def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     log("=" * 50)
     log("REGISTER ENDPOINT CALLED")
     log(f"Username: {user.username}")
@@ -49,6 +58,7 @@ async def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     
     if existing_user:
         log(f"User exists: {existing_user.username} (id={existing_user.id})")
+        # Если пользователь уже существует, проверяем пароль
         log("Verifying password...")
         if verify_password(user.password, existing_user.hashed_password):
             log("Password correct, logging in existing user")
@@ -82,6 +92,7 @@ async def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     db.refresh(db_user)
     log(f"User created with id={db_user.id}")
     
+    # Выдаём токен
     log("Creating access token...")
     access_token = create_access_token(
         data={"sub": db_user.username}
@@ -96,7 +107,7 @@ async def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     }
 
 @router.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(SessionLocal)):
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(SessionLocal)):
     log("=" * 50)
     log("LOGIN ENDPOINT CALLED")
     log(f"Username: {form_data.username}")
@@ -122,7 +133,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     }
 
 @router.get("/me", response_model=UserResponse)
-async def read_users_me(current_user: User = Depends(get_current_user)):
+def read_users_me(current_user: User = Depends(get_current_user)):
     log("=" * 50)
     log("GET /me CALLED")
     log(f"Current user: {current_user.username} (id={current_user.id})")
