@@ -17,14 +17,19 @@
             <h1>🧠 Синапс</h1>
             <div class="settings">
                 <div id="authSection">
-                    <input type="text" id="loginInput" placeholder="Логин" />
-                    <input type="password" id="passwordInput" placeholder="Пароль" />
-                    <button id="registerBtn">Регистрация</button>
-                    <button id="loginBtn">Вход</button>
-                    <button id="logoutBtn" style="display:none;">Выход</button>
+                    <div class="auth-fields">
+                        <input type="text" id="loginInput" placeholder="👤 Логин" />
+                        <input type="email" id="emailInput" placeholder="📧 Email" />
+                        <input type="password" id="passwordInput" placeholder="🔒 Пароль" />
+                    </div>
+                    <div class="auth-buttons">
+                        <button id="registerBtn">📝 Регистрация</button>
+                        <button id="loginBtn">🔑 Вход</button>
+                        <button id="logoutBtn" style="display:none;">🚪 Выход</button>
+                    </div>
                 </div>
-                <input type="text" id="apiKeyInput" placeholder="API-ключ (опционально)" />
-                <button id="analyzeBtn">Анализировать</button>
+                <input type="text" id="apiKeyInput" placeholder="🔑 API-ключ (опционально)" />
+                <button id="analyzeBtn">📊 Анализировать</button>
             </div>
         </header>
         <main>
@@ -32,15 +37,15 @@
                 <div id="messages"></div>
                 <div id="inputArea">
                     <textarea id="userInput" rows="3" placeholder="Напишите сообщение..."></textarea>
-                    <button id="sendBtn">Отправить</button>
+                    <button id="sendBtn">📨 Отправить</button>
                 </div>
             </div>
             <div id="profileSidebar">
-                <h3>Ваш профиль</h3>
+                <h3>👤 Ваш профиль</h3>
                 <div id="profileContent">
                     <p>Войдите в систему, чтобы увидеть свой профиль.</p>
                 </div>
-                <h3>Рекомендации</h3>
+                <h3>📌 Рекомендации</h3>
                 <div id="recommendationsContent">
                     <p>Войдите в систему для получения рекомендаций.</p>
                 </div>
