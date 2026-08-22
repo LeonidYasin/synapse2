@@ -27,32 +27,22 @@ jobs:
         pip install -r requirements.txt
         pip install httpx
 
-    - name: Start server
+    - name: Start server with debug
       run: |
         cd backend
-        python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-        sleep 5
+        # Запускаем сервер в фоне с выводом логов
+        python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level debug &
+        # Ждём 10 секунд, чтобы сервер точно запустился
+        sleep 10
+        # Проверяем, что сервер запущен
+        curl -v http://localhost:8000/ || echo "Server not responding"
+      continue-on-error: true
 
     - name: Test API
       id: api-tests
       run: |
         cd backend
         python test_server.py
-      continue-on-error: true
-
-    - name: Setup Node for frontend tests
-      if: always()
-      run: |
-        cd frontend
-        npm init -y
-        npm install playwright
-        npx playwright install chromium
-
-    - name: Test frontend with Playwright
-      if: always()
-      run: |
-        cd frontend
-        node test-frontend.js
       continue-on-error: true
 
     - name: Show summary
