@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
-from ..models import ProfileRequest
-from ..database import SessionLocal, Profile
+from ..models import ProfileRequest, Profile
+from ..database import SessionLocal
 from ..auth import get_current_user
 from ..agent.scanner import AgentScanner
 import json
