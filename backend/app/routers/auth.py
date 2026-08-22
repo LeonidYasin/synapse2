@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from pydantic import BaseModel, EmailStr, Field
+import json
 
 from ..database import SessionLocal
 from ..models import User
@@ -22,15 +23,53 @@ class UserResponse(BaseModel):
     email: str
 
 @router.post("/register")
-def register(user: UserRegister, db: Session = Depends(SessionLocal)):
+async def register(request: Request, db: Session = Depends(SessionLocal)):
+    # Отладочный вывод
+    body = await request.body()
+    print(f"[DEBUG] Raw body: {body}")
+    try:
+        data = json.loads(body)
+        print(f"[DEBUG] Parsed data: {data}")
+    except:
+        print(f"[DEBUG] Failed to parse JSON")
+    
+    # Ручная валидация
+    try:
+        user_data = await request.json()
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid JSON"
+        )
+    
+    username = user_data.get("username", "").strip()
+    email = user_data.get("email", "").strip()
+    password = user_data.get("password", "")
+    
+    if not username or len(username) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username must be at least 2 characters"
+        )
+    if not email or "@" not in email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Valid email is required"
+        )
+    if not password or len(password) < 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 4 characters"
+        )
+    
     # Проверяем, существует ли пользователь
     existing_user = db.query(User).filter(
-        (User.username == user.username) | (User.email == user.email)
+        (User.username == username) | (User.email == email)
     ).first()
     
     if existing_user:
         # Если пользователь уже существует, проверяем пароль и выдаём токен
-        if verify_password(user.password, existing_user.hashed_password):
+        if verify_password(password, existing_user.hashed_password):
             access_token = create_access_token(
                 data={"sub": existing_user.username}
             )
@@ -46,10 +85,10 @@ def register(user: UserRegister, db: Session = Depends(SessionLocal)):
             )
     
     # Создаём нового пользователя
-    hashed_password = get_password_hash(user.password)
+    hashed_password = get_password_hash(password)
     db_user = User(
-        username=user.username,
-        email=user.email,
+        username=username,
+        email=email,
         hashed_password=hashed_password
     )
     db.add(db_user)
