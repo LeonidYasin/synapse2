@@ -117,7 +117,20 @@ if __name__ == "__main__":
         else:
             print("[INFO] Туннель не создан, но продолжаем с localhost...")
     
-    # 2. Запускаем uvicorn
+    # 2. ЖДЁМ ПОДТВЕРЖДЕНИЯ ОТ ПОЛЬЗОВАТЕЛЯ
+    print("\n" + "="*60)
+    print("[INFO] Туннель готов!")
+    print("[INFO] Для запуска сервера нажмите ENTER")
+    print("[INFO] Для отмены нажмите CTRL+C")
+    print("="*60)
+    
+    try:
+        input()  # Ждём нажатия ENTER
+    except KeyboardInterrupt:
+        print("\n[INFO] Запуск отменён пользователем")
+        sys.exit(0)
+    
+    # 3. ТОЛЬКО ПОСЛЕ НАЖАТИЯ ENTER ЗАПУСКАЕМ UVICORN
     try:
         start_uvicorn()
     except KeyboardInterrupt:
