@@ -6,17 +6,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
 # ============================================================
-# ПРИНУДИТЕЛЬНЫЙ СБРОС БУФЕРА ДЛЯ НЕМЕДЛЕННОГО ВЫВОДА
+# ПРИНУДИТЕЛЬНЫЙ СБРОС БУФЕРА
 # ============================================================
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
 # ============================================================
-# ВЕРСИИ ФАЙЛОВ ПРИ СТАРТЕ (с принудительным выводом)
+# ЛОГИРОВАНИЕ В ФАЙЛ
 # ============================================================
-print("=" * 60, flush=True)
-print("MAIN.PY VERSION: 2026-08-22-v5-FINAL", flush=True)
-print("Checking file versions...", flush=True)
+LOG_FILE = "startup.log"
+
+def log_to_file(msg):
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(msg + "\n")
+        f.flush()
+
+log_to_file("=" * 60)
+log_to_file(f"STARTUP: {__file__} at {__import__('datetime').datetime.now()}")
+log_to_file("MAIN.PY VERSION: 2026-08-22-v6-LOGFILE")
+log_to_file("Checking file versions...")
 
 files_to_check = [
     "app/main.py",
@@ -33,14 +41,24 @@ for f in files_to_check:
             lines = content.split("\n")[:10]
             version_line = None
             for line in lines:
-                if "VERSION" in line or "v3" in line or "v4" in line or "v5" in line:
+                if "VERSION" in line or "v3" in line or "v4" in line or "v5" in line or "v6" in line:
                     version_line = line.strip()
                     break
             hash_short = hashlib.md5(content.encode()).hexdigest()[:8]
-            print(f"  {f}: {version_line or 'no version'} (md5: {hash_short})", flush=True)
+            msg = f"  {f}: {version_line or 'no version'} (md5: {hash_short})"
+            log_to_file(msg)
+            print(msg, flush=True)
     except Exception as e:
-        print(f"  {f}: ERROR - {e}", flush=True)
+        msg = f"  {f}: ERROR - {e}"
+        log_to_file(msg)
+        print(msg, flush=True)
 
+log_to_file("=" * 60)
+log_to_file("")
+
+print("=" * 60, flush=True)
+print("MAIN.PY VERSION: 2026-08-22-v6-LOGFILE", flush=True)
+print("Logs also written to: startup.log", flush=True)
 print("=" * 60, flush=True)
 # ============================================================
 
@@ -63,26 +81,37 @@ app.include_router(recommendations.router)
 app.include_router(waitlist.router)
 app.include_router(agent.router)
 
-print("=== MAIN.PY LOADED ===", flush=True)
-print(f"Routes registered: {[r.path for r in app.routes]}", flush=True)
+msg = f"Routes registered: {[r.path for r in app.routes]}"
+log_to_file(msg)
+print(msg, flush=True)
 
 # Middleware для логирования
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     body = await request.body()
-    print(f"============================================================", flush=True)
-    print(f"[REQUEST] {request.method} {request.url.path}", flush=True)
-    print(f"[REQUEST] Content-Type: {request.headers.get('content-type', 'None')}", flush=True)
+    msg = f"[REQUEST] {request.method} {request.url.path}"
+    log_to_file(msg)
+    print(msg, flush=True)
+    msg = f"[REQUEST] Content-Type: {request.headers.get('content-type', 'None')}"
+    log_to_file(msg)
+    print(msg, flush=True)
     try:
         if body:
-            print(f"[REQUEST] Body: {body.decode('utf-8', errors='replace')}", flush=True)
+            msg = f"[REQUEST] Body: {body.decode('utf-8', errors='replace')}"
+            log_to_file(msg)
+            print(msg, flush=True)
         else:
-            print(f"[REQUEST] Body: (empty)", flush=True)
+            msg = f"[REQUEST] Body: (empty)"
+            log_to_file(msg)
+            print(msg, flush=True)
     except:
-        print(f"[REQUEST] Body: (binary)", flush=True)
-    print(f"============================================================", flush=True)
+        msg = f"[REQUEST] Body: (binary)"
+        log_to_file(msg)
+        print(msg, flush=True)
     response = await call_next(request)
-    print(f"[RESPONSE] Status: {response.status_code}", flush=True)
+    msg = f"[RESPONSE] Status: {response.status_code}"
+    log_to_file(msg)
+    print(msg, flush=True)
     return response
 
 # Статика
