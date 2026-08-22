@@ -9,28 +9,43 @@
     <link rel="icon" href="/favicon.ico" />
     <link rel="stylesheet" href="/style.css?v=2" />
     <script>
-        // Принудительная очистка кэша для app.js
-        window.APP_VERSION = '2.0.0';
-        console.log('APP_VERSION:', window.APP_VERSION);
+        // Полная очистка кэша
+        console.log('=== PAGE LOADED ===');
         
-        // Удаляем старый service worker если есть
+        // Удаляем все Service Workers
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
                 for (let registration of registrations) {
                     registration.unregister();
-                    console.log('SW unregistered:', registration);
+                    console.log('SW unregistered:', registration.scope);
                 }
             });
         }
+        
+        // Очищаем кэш браузера
+        if ('caches' in window) {
+            caches.keys().then(function(names) {
+                for (let name of names) {
+                    caches.delete(name);
+                    console.log('Cache deleted:', name);
+                }
+            });
+        }
+        
+        // Устанавливаем API_URL
+        window.API_URL = 'https://polite-buses-pull.loca.lt';
+        console.log('API_URL set to:', window.API_URL);
+        console.log('=== INIT COMPLETE ===');
     </script>
 </head>
 <body>
     <div id="app"></div>
     <script>
-        // Устанавливаем API_URL до загрузки app.js
-        window.API_URL = 'https://polite-buses-pull.loca.lt';
-        console.log('API_URL set to:', window.API_URL);
+        // Принудительная загрузка с уникальным параметром
+        const script = document.createElement('script');
+        script.src = '/app.js?' + Date.now();
+        document.body.appendChild(script);
+        console.log('Script loaded with cache-busting:', script.src);
     </script>
-    <script src="/app.js?v=2.0.0"></script>
 </body>
 </html>
