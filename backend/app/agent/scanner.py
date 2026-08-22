@@ -3,7 +3,8 @@ import datetime
 from collections import Counter
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
-from ..database import SessionLocal, Profile, Dialogue
+from ..database import SessionLocal
+from ..models import Profile, Dialogue
 from ..utils.llm_client import call_deepseek
 
 class AgentScanner:
