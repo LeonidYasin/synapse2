@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Bool
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from .database import Base
 
@@ -29,7 +29,9 @@ class Profile(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     name = Column(String(100))
     bio = Column(Text)
-    preferences = Column(Text)  # JSON or text
+    topics = Column(Text, nullable=True)  # JSON array of topics
+    summary = Column(Text, nullable=True)
+    preferences = Column(Text, nullable=True)  # JSON
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -93,21 +95,14 @@ class Token(BaseModel):
 
 # Profile schemas
 class ProfileRequest(BaseModel):
-    name: Optional[str] = None
-    bio: Optional[str] = None
-    preferences: Optional[str] = None
+    user_id: Optional[int] = None
+    messages: Optional[List[dict]] = None
 
 class ProfileResponse(BaseModel):
-    id: int
-    user_id: int
-    name: Optional[str] = None
-    bio: Optional[str] = None
-    preferences: Optional[str] = None
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    
-    class Config:
-        from_attributes = True
+    topics: List[str] = []
+    summary: str = ""
+    entities: Optional[List[str]] = []
+    intentions: Optional[List[str]] = []
 
 # Chat schemas
 class ChatRequest(BaseModel):
