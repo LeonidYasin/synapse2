@@ -25,6 +25,7 @@ class Token(BaseModel):
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate):
     db = SessionLocal()
+    # Проверяем, существует ли пользователь с таким username (id)
     existing_user = db.query(User).filter(User.id == user.username).first()
     if existing_user:
         db.close()
