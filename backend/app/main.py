@@ -13,7 +13,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Synapse API", version="0.1.0")
 
-# CORS - ВАЖНО: должен быть ПЕРВЫМ middleware
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,28 +22,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Middleware для логирования (после CORS)
+# Middleware для логирования (без чтения тела)
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     print("=" * 60)
     print(f"[REQUEST] {request.method} {request.url.path}")
     print(f"[REQUEST] Headers: {dict(request.headers)}")
-    
-    # Пытаемся прочитать тело запроса (но не ломаем его)
-    body = await request.body()
-    if body:
-        try:
-            body_str = body.decode('utf-8')
-            print(f"[REQUEST] Body: {body_str}")
-        except:
-            print(f"[REQUEST] Body: (binary, {len(body)} bytes)")
-    else:
-        print("[REQUEST] Body: (empty)")
-    
-    # Важно: восстанавливаем тело для дальнейшей обработки
-    async def receive():
-        return {"type": "http.request", "body": body}
-    
     print("=" * 60)
     
     response = await call_next(request)
