@@ -54,7 +54,11 @@ async function register(username, email, password) {
     try {
         const data = await apiCall('/auth/register', {
             method: 'POST',
-            body: JSON.stringify({ username, email, password })
+            body: JSON.stringify({ 
+                username: username.trim(), 
+                email: email.trim(), 
+                password: password 
+            })
         });
         if (data.access_token) {
             state.token = data.access_token;
@@ -73,7 +77,7 @@ async function register(username, email, password) {
 async function login(username, password) {
     try {
         const formData = new URLSearchParams();
-        formData.append('username', username);
+        formData.append('username', username.trim());
         formData.append('password', password);
         const data = await apiCall('/auth/login', {
             method: 'POST',
@@ -146,7 +150,7 @@ function renderAuth() {
                     ` : ''}
                     <div class="form-group">
                         <label for="password">Пароль</label>
-                        <input type="password" id="password" placeholder="••••••••" required>
+                        <input type="password" id="password" placeholder="••••••••" required minlength="4">
                     </div>
                     <button type="submit" class="btn-primary">${isLogin ? 'Войти' : 'Зарегистрироваться'}</button>
                 </form>
@@ -167,8 +171,13 @@ function renderAuth() {
         const password = document.getElementById('password').value;
         const errorEl = document.getElementById('auth-error');
         
-        if (!username || !password) {
-            errorEl.textContent = 'Пожалуйста, заполните все поля';
+        if (!username || username.length < 2) {
+            errorEl.textContent = 'Имя пользователя должно содержать минимум 2 символа';
+            errorEl.style.display = 'block';
+            return;
+        }
+        if (!password || password.length < 4) {
+            errorEl.textContent = 'Пароль должен содержать минимум 4 символа';
             errorEl.style.display = 'block';
             return;
         }
@@ -178,8 +187,8 @@ function renderAuth() {
             result = await login(username, password);
         } else {
             const email = document.getElementById('email').value.trim();
-            if (!email) {
-                errorEl.textContent = 'Пожалуйста, укажите email';
+            if (!email || !email.includes('@')) {
+                errorEl.textContent = 'Пожалуйста, укажите корректный email';
                 errorEl.style.display = 'block';
                 return;
             }
