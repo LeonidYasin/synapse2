@@ -15,27 +15,19 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def log(msg):
     print(f"[AUTH] {msg}")
 
-# ПРОСТОЙ ТЕСТОВЫЙ ЭНДПОИНТ - синхронный
+# ПРОСТЕЙШИЙ ТЕСТОВЫЙ ЭНДПОИНТ
 @router.post("/test")
 def test_endpoint(request: Request):
-    body = request._body
     log("=" * 50)
-    log("TEST ENDPOINT CALLED (sync)")
-    log(f"Body: {body}")
-    if body:
-        try:
-            data = json.loads(body.decode('utf-8'))
-            log(f"Parsed: {data}")
-        except:
-            log("Parse error")
+    log("TEST ENDPOINT CALLED")
     log("=" * 50)
-    return {"status": "ok"}
+    return {"status": "ok", "method": "POST", "path": "/auth/test"}
 
-# НОВЫЙ ЭНДПОИНТ - синхронный
-@router.post("/signup")
-def signup(request: Request, db: Session = Depends(SessionLocal)):
+# ЭНДПОИНТ РЕГИСТРАЦИИ - НОВОЕ ИМЯ
+@router.post("/register2")
+def register2(request: Request, db: Session = Depends(SessionLocal)):
     log("=" * 50)
-    log("SIGNUP ENDPOINT CALLED (sync)")
+    log("REGISTER2 ENDPOINT CALLED (new name)")
     
     # Получаем тело запроса
     body = request._body
@@ -104,20 +96,13 @@ def signup(request: Request, db: Session = Depends(SessionLocal)):
     
     access_token = create_access_token(data={"sub": db_user.username})
     log("=" * 50)
-    log("SIGNUP SUCCESS")
+    log("REGISTER2 SUCCESS")
     log("=" * 50)
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "message": "Registration successful"
     }
-
-# Старый эндпоинт - перенаправляет на signup
-@router.post("/register")
-def register(request: Request, db: Session = Depends(SessionLocal)):
-    log("=" * 50)
-    log("REGISTER ENDPOINT CALLED - redirecting to signup")
-    return signup(request, db)
 
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(SessionLocal)):
