@@ -12,7 +12,7 @@ let state = {
     messages: []
 };
 
-console.log('Initial token:', state.token);
+console.log('🔑 Initial token from localStorage:', state.token);
 
 // DOM Elements
 const app = document.getElementById('app');
@@ -24,23 +24,26 @@ function navigateTo(view) {
 }
 
 // API calls
-async function apiCall(endpoint, options = {}) {
+async function apiCall(endpoint, options = {}, customToken = null) {
     const url = `${API_URL}${endpoint}`;
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers
     };
-    if (state.token) {
-        headers['Authorization'] = `Bearer ${state.token}`;
-        console.log('🔑 Token sent:', state.token);
+    const token = customToken || state.token;
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        console.log(`🔑 Sending token for ${endpoint}:`, token.substring(0, 20) + '...');
+    } else {
+        console.log(`❌ No token for ${endpoint}`);
     }
-    console.log('📡 Request:', url, headers);
+    console.log(`📡 ${options.method || 'GET'} ${url}`);
     const response = await fetch(url, {
         ...options,
         headers
     });
     const data = await response.json();
-    console.log('📡 Response:', response.status, data);
+    console.log(`📡 Response ${response.status}:`, data);
     if (!response.ok) {
         throw new Error(data.detail || 'API error');
     }
@@ -55,10 +58,13 @@ async function register(username, email, password) {
             method: 'POST',
             body: JSON.stringify({ username, email, password })
         });
-        console.log('✅ Register success:', data);
+        console.log('✅ Registration success:', data);
         state.token = data.access_token;
         localStorage.setItem('token', state.token);
-        await loadUser();
+        console.log('🔑 Token saved:', state.token);
+        // Load user with the new token
+        state.user = await apiCall('/auth/me', {}, state.token);
+        console.log('👤 User loaded:', state.user);
         render();
         return { success: true };
     } catch (error) {
@@ -83,7 +89,10 @@ async function login(username, password) {
         console.log('✅ Login success:', data);
         state.token = data.access_token;
         localStorage.setItem('token', state.token);
-        await loadUser();
+        console.log('🔑 Token saved:', state.token);
+        // Load user with the new token
+        state.user = await apiCall('/auth/me', {}, state.token);
+        console.log('👤 User loaded:', state.user);
         render();
         return { success: true };
     } catch (error) {
@@ -100,9 +109,9 @@ function logout() {
 }
 
 async function loadUser() {
+    if (!state.token) return;
     try {
-        console.log('👤 Loading user with token:', state.token);
-        state.user = await apiCall('/auth/me');
+        state.user = await apiCall('/auth/me', {}, state.token);
         console.log('👤 User loaded:', state.user);
     } catch (error) {
         console.error('❌ Load user error:', error);
@@ -114,7 +123,7 @@ async function loadUser() {
 
 // Render functions
 function render() {
-    console.log('🔄 Render called, token:', state.token, 'user:', state.user);
+    console.log('🔄 Render, token:', !!state.token, 'user:', !!state.user);
     if (!state.token || !state.user) {
         renderAuth();
         return;
@@ -233,7 +242,7 @@ function renderApp() {
 
 async function startNewChat() {
     try {
-        const data = await apiCall('/chat', { method: 'POST' });
+        const data = await apiCall('/chat', { method: 'POST' }, state.token);
         state.currentDialogueId = data.id;
         state.messages = [];
         await loadDialogues();
@@ -245,7 +254,7 @@ async function startNewChat() {
 
 async function loadDialogues() {
     try {
-        state.dialogues = await apiCall('/chat');
+        state.dialogues = await apiCall('/chat', {}, state.token);
     } catch (error) {
         state.dialogues = [];
     }
@@ -254,7 +263,7 @@ async function loadDialogues() {
 async function loadDialogue(id) {
     try {
         state.currentDialogueId = id;
-        state.messages = await apiCall(`/chat/${id}`);
+        state.messages = await apiCall(`/chat/${id}`, {}, state.token);
         render();
     } catch (error) {
         console.error('Failed to load dialogue:', error);
@@ -277,7 +286,7 @@ async function sendMessage() {
                 dialogue_id: state.currentDialogueId,
                 message: text
             })
-        });
+        }, state.token);
         state.messages.push({ role: 'assistant', content: response.response });
         render();
     } catch (error) {
