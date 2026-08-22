@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 from ..database import SessionLocal
 from ..models import User
@@ -13,16 +13,13 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 class UserRegister(BaseModel):
     username: str = Field(..., min_length=2, max_length=50)
-    email: EmailStr
+    email: str = Field(..., min_length=3, max_length=100)  # Просто строка, без EmailStr
     password: str = Field(..., min_length=4, max_length=72)
 
 class UserResponse(BaseModel):
     id: int
     username: str
     email: str
-
-# Простой логгер через print
-print("=== AUTH ROUTER LOADED ===")
 
 def log(msg):
     print(f"[AUTH] {msg}")
