@@ -5,7 +5,6 @@ import re
 import os
 import sys
 import shutil
-import threading
 
 def find_npx():
     """Находит путь к npx в системе."""
@@ -105,16 +104,21 @@ if __name__ == "__main__":
     print("[INFO] Запуск скрипта run.py")
     print(f"[DEBUG] Аргументы командной строки: {sys.argv}")
     
-    # Сначала получаем URL, потом запускаем сервер
+    # === ПРАВИЛЬНЫЙ ПОРЯДОК ===
+    # 1. Сначала получаем URL
     if len(sys.argv) > 1 and sys.argv[1].startswith("--url="):
         url = sys.argv[1].split("=")[1]
         os.environ["API_URL"] = url
         print(f"[INFO] Используется переданный URL: {url}")
     else:
-        # Запускаем localtunnel и ждём URL
-        get_localtunnel_url(8000)
+        # Запускаем localtunnel и ЖДЁМ получения URL
+        url = get_localtunnel_url(8000)
+        if url:
+            print("[INFO] Туннель успешно создан, продолжаем...")
+        else:
+            print("[INFO] Туннель не создан, но продолжаем с localhost...")
     
-    # Теперь запускаем сервер (после получения URL)
+    # 2. Только ПОСЛЕ получения URL запускаем uvicorn
     try:
         start_uvicorn()
     except KeyboardInterrupt:
