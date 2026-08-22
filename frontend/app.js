@@ -12,6 +12,8 @@ let state = {
     messages: []
 };
 
+console.log('Initial token:', state.token);
+
 // DOM Elements
 const app = document.getElementById('app');
 
@@ -30,12 +32,15 @@ async function apiCall(endpoint, options = {}) {
     };
     if (state.token) {
         headers['Authorization'] = `Bearer ${state.token}`;
+        console.log('🔑 Token sent:', state.token);
     }
+    console.log('📡 Request:', url, headers);
     const response = await fetch(url, {
         ...options,
         headers
     });
     const data = await response.json();
+    console.log('📡 Response:', response.status, data);
     if (!response.ok) {
         throw new Error(data.detail || 'API error');
     }
@@ -45,22 +50,26 @@ async function apiCall(endpoint, options = {}) {
 // Auth functions
 async function register(username, email, password) {
     try {
+        console.log('📝 Registering:', username, email);
         const data = await apiCall('/auth/register', {
             method: 'POST',
             body: JSON.stringify({ username, email, password })
         });
+        console.log('✅ Register success:', data);
         state.token = data.access_token;
         localStorage.setItem('token', state.token);
         await loadUser();
         render();
         return { success: true };
     } catch (error) {
+        console.error('❌ Register error:', error);
         return { success: false, error: error.message };
     }
 }
 
 async function login(username, password) {
     try {
+        console.log('🔑 Logging in:', username);
         const formData = new URLSearchParams();
         formData.append('username', username);
         formData.append('password', password);
@@ -71,12 +80,14 @@ async function login(username, password) {
             },
             body: formData
         });
+        console.log('✅ Login success:', data);
         state.token = data.access_token;
         localStorage.setItem('token', state.token);
         await loadUser();
         render();
         return { success: true };
     } catch (error) {
+        console.error('❌ Login error:', error);
         return { success: false, error: error.message };
     }
 }
@@ -90,8 +101,11 @@ function logout() {
 
 async function loadUser() {
     try {
+        console.log('👤 Loading user with token:', state.token);
         state.user = await apiCall('/auth/me');
-    } catch {
+        console.log('👤 User loaded:', state.user);
+    } catch (error) {
+        console.error('❌ Load user error:', error);
         state.user = null;
         state.token = null;
         localStorage.removeItem('token');
@@ -100,6 +114,7 @@ async function loadUser() {
 
 // Render functions
 function render() {
+    console.log('🔄 Render called, token:', state.token, 'user:', state.user);
     if (!state.token || !state.user) {
         renderAuth();
         return;
@@ -210,7 +225,6 @@ function renderApp() {
         if (e.key === 'Enter') sendMessage();
     });
     
-    // Scroll to bottom
     const container = document.getElementById('messages-container');
     if (container) {
         container.scrollTop = container.scrollHeight;
@@ -253,7 +267,6 @@ async function sendMessage() {
     if (!text) return;
     input.value = '';
     
-    // Add user message optimistically
     state.messages.push({ role: 'user', content: text });
     render();
     
