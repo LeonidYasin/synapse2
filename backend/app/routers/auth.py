@@ -14,6 +14,25 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def log(msg):
     print(f"[AUTH] {msg}")
 
+# ТЕСТОВЫЙ ЭНДПОИНТ - принимает raw JSON без моделей
+@router.post("/test-raw")
+async def test_raw(request: Request):
+    log("=" * 50)
+    log("TEST-RAW ENDPOINT CALLED")
+    body = await request.body()
+    log(f"Raw body: {body}")
+    try:
+        decoded = body.decode('utf-8')
+        log(f"Decoded: {decoded}")
+        data = json.loads(decoded)
+        log(f"Parsed: {data}")
+        log("=" * 50)
+        return {"status": "ok", "data": data}
+    except Exception as e:
+        log(f"Error: {e}")
+        log("=" * 50)
+        return {"status": "error", "error": str(e), "body": body.decode('utf-8', errors='replace')}
+
 # БЕЗ PYDANTIC - принимаем raw JSON
 @router.post("/register")
 async def register(request: Request, db: Session = Depends(SessionLocal)):
