@@ -15,40 +15,46 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def log(msg):
     print(f"[AUTH] {msg}")
 
-# ТЕСТОВЫЙ ЭНДПОИНТ
+# ПРОСТОЙ ТЕСТОВЫЙ ЭНДПОИНТ - синхронный
 @router.post("/test")
-async def test_endpoint(request: Request):
-    body = await request.body()
+def test_endpoint(request: Request):
+    body = request._body
     log("=" * 50)
-    log("TEST ENDPOINT CALLED")
-    log(f"Raw body: {body}")
-    try:
-        data = json.loads(body)
-        log(f"Parsed data: {data}")
-        log(f"Keys: {list(data.keys())}")
-    except:
-        log("Could not parse JSON")
+    log("TEST ENDPOINT CALLED (sync)")
+    log(f"Body: {body}")
+    if body:
+        try:
+            data = json.loads(body.decode('utf-8'))
+            log(f"Parsed: {data}")
+        except:
+            log("Parse error")
     log("=" * 50)
-    return {"status": "ok", "received": body.decode('utf-8')}
+    return {"status": "ok"}
 
-# НОВЫЙ ЭНДПОИНТ - с другим именем
+# НОВЫЙ ЭНДПОИНТ - синхронный
 @router.post("/signup")
-async def signup(request: Request, db: Session = Depends(SessionLocal)):
+def signup(request: Request, db: Session = Depends(SessionLocal)):
     log("=" * 50)
-    log("SIGNUP ENDPOINT CALLED (new name)")
+    log("SIGNUP ENDPOINT CALLED (sync)")
     
-    body = await request.body()
+    # Получаем тело запроса
+    body = request._body
     log(f"Raw body: {body}")
     
+    if not body:
+        log("Empty body")
+        raise HTTPException(status_code=400, detail="Empty body")
+    
     try:
-        data = json.loads(body)
+        data = json.loads(body.decode('utf-8'))
         log(f"Parsed data: {data}")
-        username = data.get("username")
-        email = data.get("email")
-        password = data.get("password")
     except Exception as e:
-        log(f"Error parsing JSON: {e}")
+        log(f"JSON parse error: {e}")
         raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+    
+    username = data.get("username")
+    email = data.get("email")
+    password = data.get("password")
     
     if not username or not email or not password:
         log("Missing required fields")
@@ -58,7 +64,7 @@ async def signup(request: Request, db: Session = Depends(SessionLocal)):
     log(f"Email: {email}")
     log(f"Password length: {len(password)}")
     
-    # Проверяем, существует ли пользователь
+    # Проверяем существующего пользователя
     log("Checking if user exists...")
     existing_user = db.query(User).filter(
         (User.username == username) | (User.email == email)
@@ -68,9 +74,7 @@ async def signup(request: Request, db: Session = Depends(SessionLocal)):
         log(f"User exists: {existing_user.username} (id={existing_user.id})")
         if verify_password(password, existing_user.hashed_password):
             log("Password correct, logging in existing user")
-            access_token = create_access_token(
-                data={"sub": existing_user.username}
-            )
+            access_token = create_access_token(data={"sub": existing_user.username})
             log("=" * 50)
             return {
                 "access_token": access_token,
@@ -78,7 +82,7 @@ async def signup(request: Request, db: Session = Depends(SessionLocal)):
                 "message": "Welcome back!"
             }
         else:
-            log("Password incorrect for existing user")
+            log("Password incorrect")
             log("=" * 50)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -98,9 +102,7 @@ async def signup(request: Request, db: Session = Depends(SessionLocal)):
     db.refresh(db_user)
     log(f"User created with id={db_user.id}")
     
-    access_token = create_access_token(
-        data={"sub": db_user.username}
-    )
+    access_token = create_access_token(data={"sub": db_user.username})
     log("=" * 50)
     log("SIGNUP SUCCESS")
     log("=" * 50)
@@ -110,12 +112,12 @@ async def signup(request: Request, db: Session = Depends(SessionLocal)):
         "message": "Registration successful"
     }
 
-# Оставляем старый эндпоинт для совместимости
+# Старый эндпоинт - перенаправляет на signup
 @router.post("/register")
-async def register(request: Request):
+def register(request: Request, db: Session = Depends(SessionLocal)):
     log("=" * 50)
-    log("REGISTER ENDPOINT CALLED (old name) - REDIRECT TO /signup")
-    return await signup(request)
+    log("REGISTER ENDPOINT CALLED - redirecting to signup")
+    return signup(request, db)
 
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(SessionLocal)):
