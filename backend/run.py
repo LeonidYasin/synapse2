@@ -4,6 +4,28 @@ import time
 import re
 import os
 import sys
+import shutil
+
+def find_npx():
+    """Находит путь к npx в системе."""
+    # Проверяем, есть ли npx в PATH
+    npx_path = shutil.which("npx")
+    if npx_path:
+        return npx_path
+    
+    # Проверяем стандартные пути для Windows
+    if sys.platform == "win32":
+        possible_paths = [
+            os.path.expanduser("~\\AppData\\Roaming\\npm\\npx.cmd"),
+            os.path.expanduser("~\\AppData\\Roaming\\npm\\npx"),
+            "C:\\Program Files\\nodejs\\npx.cmd",
+            "C:\\Program Files\\nodejs\\npx",
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+    
+    return None
 
 def get_localtunnel_url(port=8000, timeout=30):
     """
@@ -11,17 +33,26 @@ def get_localtunnel_url(port=8000, timeout=30):
     Использует npx для запуска.
     """
     print("[INFO] Запуск localtunnel...")
-    try:
-        # Проверяем, доступен ли npx
-        subprocess.run(["npx", "--version"], capture_output=True, check=True)
-    except (subprocess.CalledProcessError, FileNotFoundError):
+    
+    # Находим npx
+    npx_cmd = find_npx()
+    if not npx_cmd:
         print("[WARN] npx не найден. Установите Node.js или используйте ручной URL.")
         print("[INFO] Для ручного ввода: python run.py --url=https://your-url.loca.lt")
+        return None
+    
+    print(f"[DEBUG] Используется npx: {npx_cmd}")
+    
+    # Проверяем, работает ли npx
+    try:
+        subprocess.run([npx_cmd, "--version"], capture_output=True, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print(f"[ERROR] npx не работает: {npx_cmd}")
         return None
 
     # Запускаем localtunnel
     process = subprocess.Popen(
-        ["npx", "localtunnel", "--port", str(port)],
+        [npx_cmd, "localtunnel", "--port", str(port)],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
