@@ -22,20 +22,27 @@ jobs:
         cd backend
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    - name: Syntax check
+    - name: Check imports
       run: |
         cd backend
         python -c "
 import sys
-import ast
-files = ['app/main.py', 'app/routers/auth.py', 'app/models.py', 'app/database.py', 'app/auth.py']
-for f in files:
+import importlib
+
+modules = [
+    'app.main',
+    'app.routers.auth',
+    'app.models',
+    'app.database',
+    'app.auth'
+]
+
+for m in modules:
     try:
-        with open(f, 'r') as file:
-            ast.parse(file.read())
-        print(f'✅ {f} syntax OK')
+        importlib.import_module(m)
+        print(f'✅ {m}')
     except Exception as e:
-        print(f'❌ {f} ERROR: {e}')
+        print(f'❌ {m}: {e}')
         sys.exit(1)
-print('✅ All files syntax OK')
+print('✅ All modules imported successfully!')
 "
