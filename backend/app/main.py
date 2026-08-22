@@ -13,34 +13,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Synapse API", version="0.1.0")
 
-# Middleware для логирования всех запросов
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    print("=" * 60)
-    print(f"[REQUEST] {request.method} {request.url.path}")
-    print(f"[REQUEST] Headers: {dict(request.headers)}")
-    
-    # Пытаемся прочитать тело запроса
-    try:
-        body = await request.body()
-        if body:
-            try:
-                body_str = body.decode('utf-8')
-                print(f"[REQUEST] Body: {body_str}")
-            except:
-                print(f"[REQUEST] Body: (binary, {len(body)} bytes)")
-        else:
-            print("[REQUEST] Body: (empty)")
-    except Exception as e:
-        print(f"[REQUEST] Body read error: {e}")
-    
-    print("=" * 60)
-    
-    response = await call_next(request)
-    print(f"[RESPONSE] Status: {response.status_code}")
-    return response
-
-# CORS
+# CORS - ВАЖНО: должен быть ПЕРВЫМ middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -48,6 +21,34 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Middleware для логирования (после CORS)
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print("=" * 60)
+    print(f"[REQUEST] {request.method} {request.url.path}")
+    print(f"[REQUEST] Headers: {dict(request.headers)}")
+    
+    # Пытаемся прочитать тело запроса (но не ломаем его)
+    body = await request.body()
+    if body:
+        try:
+            body_str = body.decode('utf-8')
+            print(f"[REQUEST] Body: {body_str}")
+        except:
+            print(f"[REQUEST] Body: (binary, {len(body)} bytes)")
+    else:
+        print("[REQUEST] Body: (empty)")
+    
+    # Важно: восстанавливаем тело для дальнейшей обработки
+    async def receive():
+        return {"type": "http.request", "body": body}
+    
+    print("=" * 60)
+    
+    response = await call_next(request)
+    print(f"[RESPONSE] Status: {response.status_code}")
+    return response
 
 # Routers
 app.include_router(auth.router)
