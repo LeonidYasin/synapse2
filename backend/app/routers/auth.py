@@ -12,21 +12,10 @@ from ..config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# Упрощённая модель без EmailStr
-class UserRegister(BaseModel):
-    username: str
-    email: str
-    password: str
-
-class UserResponse(BaseModel):
-    id: int
-    username: str
-    email: str
-
 def log(msg):
     print(f"[AUTH] {msg}")
 
-# ТЕСТОВЫЙ ЭНДПОИНТ
+# ТЕСТОВЫЙ ЭНДПОИНТ - принимает любые данные
 @router.post("/test")
 async def test_endpoint(request: Request):
     body = await request.body()
@@ -42,23 +31,43 @@ async def test_endpoint(request: Request):
     log("=" * 50)
     return {"status": "ok", "received": body.decode('utf-8')}
 
+# ЭНДПОИНТ РЕГИСТРАЦИИ - теперь через Request напрямую
 @router.post("/register")
-def register(user: UserRegister, db: Session = Depends(SessionLocal)):
+async def register(request: Request, db: Session = Depends(SessionLocal)):
     log("=" * 50)
-    log("REGISTER ENDPOINT CALLED")
-    log(f"Username: {user.username}")
-    log(f"Email: {user.email}")
-    log(f"Password length: {len(user.password)}")
+    log("REGISTER ENDPOINT CALLED (via Request)")
+    
+    # Читаем тело запроса
+    body = await request.body()
+    log(f"Raw body: {body}")
+    
+    # Парсим JSON
+    try:
+        data = json.loads(body)
+        log(f"Parsed data: {data}")
+        username = data.get("username")
+        email = data.get("email")
+        password = data.get("password")
+        log(f"Username: {username}")
+        log(f"Email: {email}")
+        log(f"Password length: {len(password) if password else 0}")
+    except Exception as e:
+        log(f"Error parsing JSON: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+    
+    if not username or not email or not password:
+        log("Missing required fields")
+        raise HTTPException(status_code=400, detail="Missing required fields")
     
     # Проверяем, существует ли пользователь
     log("Checking if user exists...")
     existing_user = db.query(User).filter(
-        (User.username == user.username) | (User.email == user.email)
+        (User.username == username) | (User.email == email)
     ).first()
     
     if existing_user:
         log(f"User exists: {existing_user.username} (id={existing_user.id})")
-        if verify_password(user.password, existing_user.hashed_password):
+        if verify_password(password, existing_user.hashed_password):
             log("Password correct, logging in existing user")
             access_token = create_access_token(
                 data={"sub": existing_user.username}
@@ -79,10 +88,10 @@ def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     
     # Создаём нового пользователя
     log("Creating new user...")
-    hashed_password = get_password_hash(user.password)
+    hashed_password = get_password_hash(password)
     db_user = User(
-        username=user.username,
-        email=user.email,
+        username=username,
+        email=email,
         hashed_password=hashed_password
     )
     db.add(db_user)
@@ -128,14 +137,14 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         "token_type": "bearer"
     }
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me")
 def read_users_me(current_user: User = Depends(get_current_user)):
     log("=" * 50)
     log("GET /me CALLED")
     log(f"Current user: {current_user.username} (id={current_user.id})")
     log("=" * 50)
-    return UserResponse(
-        id=current_user.id,
-        username=current_user.username,
-        email=current_user.email
-    )
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email
+    }
