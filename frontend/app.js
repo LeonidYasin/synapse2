@@ -54,7 +54,6 @@ async function register(username, email, password) {
     console.log('[REGISTER] username:', username);
     console.log('[REGISTER] email:', email);
     console.log('[REGISTER] password length:', password.length);
-    console.log('[REGISTER] password chars:', Array.from(password).map(c => c.charCodeAt(0)));
     
     try {
         const data = await apiCall('/auth/register', {
@@ -65,6 +64,7 @@ async function register(username, email, password) {
                 password: password 
             })
         });
+        console.log('[REGISTER] response:', data);
         if (data.access_token) {
             state.token = data.access_token;
             localStorage.setItem('token', state.token);
@@ -75,6 +75,7 @@ async function register(username, email, password) {
             return { success: false, error: 'No token received' };
         }
     } catch (error) {
+        console.error('[REGISTER] error:', error);
         return { success: false, error: error.message };
     }
 }
@@ -320,17 +321,23 @@ window.sendMessage = sendMessage;
 
 // Initialize
 async function init() {
+    console.log('[INIT] Starting...');
+    console.log('[INIT] API_URL:', API_URL);
     if (state.token) {
+        console.log('[INIT] Token found in localStorage');
         const ok = await loadUser();
         if (!ok) {
             state.token = null;
             localStorage.removeItem('token');
         }
+    } else {
+        console.log('[INIT] No token found');
     }
     if (state.user) {
         await loadDialogues();
     }
     render();
+    console.log('[INIT] Complete');
 }
 
 window.API_URL = API_URL;
