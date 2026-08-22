@@ -14,104 +14,96 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def log(msg):
     print(f"[AUTH] {msg}")
 
-# Прямой эндпоинт без Pydantic - принимает raw JSON
+# БЕЗ PYDANTIC - принимаем raw JSON
 @router.post("/register")
-async def register_raw(request: Request, db: Session = Depends(SessionLocal)):
+async def register(request: Request, db: Session = Depends(SessionLocal)):
     log("=" * 50)
-    log("REGISTER RAW ENDPOINT CALLED")
+    log("REGISTER ENDPOINT CALLED (raw)")
     
     try:
         body = await request.body()
-        log(f"Raw body (bytes): {body}")
-        log(f"Raw body (hex): {body.hex()}")
+        log(f"Raw body: {body}")
+        data = json.loads(body)
+        log(f"Parsed data: {data}")
         
-        # Пробуем декодировать как UTF-8
-        try:
-            text = body.decode('utf-8')
-            log(f"Decoded as UTF-8: {text}")
-        except UnicodeDecodeError as e:
-            log(f"UTF-8 decode error: {e}")
-            # Пробуем другие кодировки
-            for encoding in ['cp1251', 'latin-1', 'cp866']:
-                try:
-                    text = body.decode(encoding)
-                    log(f"Decoded as {encoding}: {text}")
-                except:
-                    pass
+        username = data.get("username", "").strip()
+        email = data.get("email", "").strip()
+        password = data.get("password", "")
         
-        # Парсим JSON
-        try:
-            data = json.loads(body)
-            log(f"Parsed JSON: {data}")
-            log(f"Keys: {list(data.keys())}")
-            log(f"Username: {data.get('username')}")
-            log(f"Email: {data.get('email')}")
-            log(f"Password: {data.get('password')}")
-            log(f"Password type: {type(data.get('password'))}")
-            
-            username = data.get('username', '').strip()
-            email = data.get('email', '').strip()
-            password = data.get('password', '')
-            
-            if not username or not email or not password:
-                log("Missing required fields")
-                raise HTTPException(status_code=400, detail="Missing required fields")
-            
-            # Проверяем, существует ли пользователь
-            log("Checking if user exists...")
-            existing_user = db.query(User).filter(
-                (User.username == username) | (User.email == email)
-            ).first()
-            
-            if existing_user:
-                log(f"User exists: {existing_user.username} (id={existing_user.id})")
-                if verify_password(password, existing_user.hashed_password):
-                    log("Password correct, logging in existing user")
-                    access_token = create_access_token(
-                        data={"sub": existing_user.username}
-                    )
-                    log("=" * 50)
-                    return {
-                        "access_token": access_token,
-                        "token_type": "bearer",
-                        "message": "Welcome back!"
-                    }
-                else:
-                    log("Password incorrect")
-                    raise HTTPException(status_code=400, detail="Invalid password")
-            
-            # Создаём нового пользователя
-            log("Creating new user...")
-            hashed_password = get_password_hash(password)
-            db_user = User(
-                username=username,
-                email=email,
-                hashed_password=hashed_password
-            )
-            db.add(db_user)
-            db.commit()
-            db.refresh(db_user)
-            log(f"User created with id={db_user.id}")
-            
-            access_token = create_access_token(
-                data={"sub": db_user.username}
-            )
-            log("=" * 50)
-            log("REGISTER SUCCESS")
-            log("=" * 50)
-            return {
-                "access_token": access_token,
-                "token_type": "bearer",
-                "message": "Registration successful"
-            }
-            
-        except json.JSONDecodeError as e:
-            log(f"JSON decode error: {e}")
-            raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
-            
+        log(f"Username: {username}")
+        log(f"Email: {email}")
+        log(f"Password length: {len(password)}")
+        
+        if not username or len(username) < 2:
+            log("Username too short")
+            raise HTTPException(status_code=400, detail="Username must be at least 2 characters")
+        if not email or "@" not in email:
+            log("Invalid email")
+            raise HTTPException(status_code=400, detail="Invalid email")
+        if not password or len(password) < 4:
+            log("Password too short")
+            raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
+        
+        # Проверяем, существует ли пользователь
+        log("Checking if user exists...")
+        existing_user = db.query(User).filter(
+            (User.username == username) | (User.email == email)
+        ).first()
+        
+        if existing_user:
+            log(f"User exists: {existing_user.username} (id={existing_user.id})")
+            if verify_password(password, existing_user.hashed_password):
+                log("Password correct, logging in existing user")
+                access_token = create_access_token(
+                    data={"sub": existing_user.username}
+                )
+                log("=" * 50)
+                return {
+                    "access_token": access_token,
+                    "token_type": "bearer",
+                    "message": "Welcome back!"
+                }
+            else:
+                log("Password incorrect for existing user")
+                log("=" * 50)
+                raise HTTPException(
+                    status_code=400,
+                    detail="Username or email already registered with different password"
+                )
+        
+        # Создаём нового пользователя
+        log("Creating new user...")
+        hashed_password = get_password_hash(password)
+        db_user = User(
+            username=username,
+            email=email,
+            hashed_password=hashed_password
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        log(f"User created with id={db_user.id}")
+        
+        # Выдаём токен
+        log("Creating access token...")
+        access_token = create_access_token(
+            data={"sub": db_user.username}
+        )
+        log("=" * 50)
+        log("REGISTER SUCCESS")
+        log("=" * 50)
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "message": "Registration successful"
+        }
+        
+    except json.JSONDecodeError as e:
+        log(f"JSON decode error: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
     except Exception as e:
         log(f"Unexpected error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise
 
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(SessionLocal)):
