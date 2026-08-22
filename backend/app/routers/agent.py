@@ -1,46 +1,42 @@
 from fastapi import APIRouter, Depends, HTTPException
-from ..models import ProfileRequest, Profile
-from ..database import SessionLocal
+from sqlalchemy.orm import Session
+from ..models import ProfileRequest, ProfileResponse, Profile
+from ..database import get_db
 from ..auth import get_current_user
 from ..agent.scanner import AgentScanner
 import json
 from typing import List, Optional
-from pydantic import BaseModel
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
-class ProfileResponse(BaseModel):
-    topics: List[str]
-    summary: str
-    entities: Optional[List[str]] = []
-    intentions: Optional[List[str]] = []
-
 @router.post("/analyze", response_model=ProfileResponse)
-async def analyze(request: ProfileRequest):
+async def analyze(
+    request: ProfileRequest,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     Анализирует диалоги пользователя и строит профиль.
-    Если user_id не указан, используется текущий аутентифицированный пользователь.
+    Использует текущего аутентифицированного пользователя.
     """
-    # Используем переданный user_id или заглушку для демо
-    user_id = request.user_id or "demo-user"
+    # Используем ID текущего пользователя
+    user_id = current_user.id
     
-    # Сохраняем диалоги в БД, если они переданы
-    if request.messages:
-        db = SessionLocal()
-        for msg in request.messages:
-            # Здесь можно сохранять диалоги
-            pass
-        db.close()
+    # Проверяем, есть ли уже профиль
+    profile = db.query(Profile).filter(Profile.user_id == user_id).first()
     
     # Создаем сканер и запускаем анализ
-    scanner = AgentScanner(user_id)
+    scanner = AgentScanner(str(user_id))
+    
+    # Если есть сообщения в запросе, сохраняем их
+    if request.messages:
+        # Здесь можно сохранять диалоги в БД
+        pass
+    
     result = await scanner.scan_and_update_profile()
     
     if result.get("status") == "no_dialogues":
         # Если диалогов нет, пытаемся получить профиль из БД
-        db = SessionLocal()
-        profile = db.query(Profile).filter(Profile.user_id == user_id).first()
-        db.close()
         if profile:
             return ProfileResponse(
                 topics=json.loads(profile.topics) if profile.topics else [],
@@ -48,7 +44,28 @@ async def analyze(request: ProfileRequest):
                 entities=[],
                 intentions=[]
             )
-        raise HTTPException(status_code=404, detail="Диалоги не найдены")
+        return ProfileResponse(
+            topics=[],
+            summary="У вас пока нет диалогов. Начните общение, чтобы агент мог проанализировать ваши интересы.",
+            entities=[],
+            intentions=[]
+        )
+    
+    # Обновляем или создаём профиль в БД
+    topics_json = json.dumps(result.get("topics", []))
+    summary = result.get("summary", "")
+    
+    if profile:
+        profile.topics = topics_json
+        profile.summary = summary
+    else:
+        new_profile = Profile(
+            user_id=user_id,
+            topics=topics_json,
+            summary=summary
+        )
+        db.add(new_profile)
+    db.commit()
     
     return ProfileResponse(
         topics=result.get("topics", []),
@@ -58,14 +75,15 @@ async def analyze(request: ProfileRequest):
     )
 
 @router.get("/profile", response_model=ProfileResponse)
-async def get_profile(current_user = Depends(get_current_user)):
+async def get_profile(
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     Получает профиль текущего пользователя.
     Требуется аутентификация.
     """
-    db = SessionLocal()
     profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
-    db.close()
     
     if not profile:
         return ProfileResponse(
