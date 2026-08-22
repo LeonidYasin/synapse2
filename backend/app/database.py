@@ -1,7 +1,6 @@
-from sqlalchemy import create_engine, Column, String, Text, Integer, DateTime, Boolean
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime
 from .config import Config
 
 engine = create_engine(Config.DATABASE_URL, connect_args={"check_same_thread": False})
@@ -14,35 +13,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
-class User(Base):
-    __tablename__ = "users"
-    id = Column(String, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=True)
-    hashed_password = Column(String, nullable=False)
-    api_key = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    # Stripe поля
-    stripe_customer_id = Column(String, nullable=True)
-    stripe_subscription_id = Column(String, nullable=True)
-    subscription_status = Column(String, default="inactive")  # inactive, active, canceling
-    subscription_end = Column(DateTime, nullable=True)
-    plan = Column(String, nullable=True)  # monthly, yearly
-
-class Dialogue(Base):
-    __tablename__ = "dialogues"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, index=True)
-    role = Column(String)
-    content = Column(Text)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-
-class Profile(Base):
-    __tablename__ = "profiles"
-    user_id = Column(String, primary_key=True, index=True)
-    topics = Column(Text)
-    summary = Column(Text)
-    updated_at = Column(DateTime, default=datetime.utcnow)
-
-Base.metadata.create_all(bind=engine)
