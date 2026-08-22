@@ -84,8 +84,10 @@ def get_localtunnel_url(port=8000, timeout=30):
             f.write(f"API_URL={url}\n")
         print(f"[OK] URL saved to {env_path}")
         
-        # Обновляем frontend/app.js с новым URL
-        update_frontend_appjs(url)
+        # Обновляем frontend/index.html с новым URL
+        update_frontend_index_html(url)
+        # Также обновляем main.js на всякий случай
+        update_frontend_main_js(url)
     else:
         print("[WARN] Could not get URL from localtunnel. Using localhost.")
         print("[INFO] Try running localtunnel manually in another terminal:")
@@ -94,30 +96,48 @@ def get_localtunnel_url(port=8000, timeout=30):
     
     return url
 
-def update_frontend_appjs(url):
-    """Обновляет API_BASE в frontend/app.js"""
-    frontend_paths = [
-        os.path.join(os.path.dirname(__file__), "..", "frontend", "app.js"),
-        os.path.join(os.path.dirname(__file__), "..", "docs", "frontend", "app.js")
-    ]
+def update_frontend_index_html(url):
+    """Обновляет window.API_URL в frontend/index.html"""
+    index_path = os.path.join(os.path.dirname(__file__), "..", "frontend", "index.html")
     
-    for path in frontend_paths:
-        if not os.path.exists(path):
-            continue
-        
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-        
-        # Заменяем API_BASE
-        new_content = re.sub(
-            r"const API_BASE = ['\"][^'\"]*['\"];",
-            f"const API_BASE = '{url}';",
-            content
-        )
-        
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(new_content)
-        print(f"[OK] Updated {os.path.basename(path)} with URL: {url}")
+    if not os.path.exists(index_path):
+        print(f"[WARN] index.html not found at {index_path}")
+        return
+    
+    with open(index_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    
+    # Заменяем window.API_URL = '...' на новый URL
+    new_content = re.sub(
+        r"window\.API_URL\s*=\s*['\"][^'\"]*['\"];",
+        f"window.API_URL = '{url}';",
+        content
+    )
+    
+    with open(index_path, "w", encoding="utf-8") as f:
+        f.write(new_content)
+    print(f"[OK] Updated index.html with URL: {url}")
+
+def update_frontend_main_js(url):
+    """Обновляет API_URL в frontend/main.js"""
+    main_js_path = os.path.join(os.path.dirname(__file__), "..", "frontend", "main.js")
+    
+    if not os.path.exists(main_js_path):
+        return
+    
+    with open(main_js_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    
+    # Заменяем const API_URL = '...' на новый URL
+    new_content = re.sub(
+        r"const API_URL\s*=\s*['\"][^'\"]*['\"];",
+        f"const API_URL = '{url}';",
+        content
+    )
+    
+    with open(main_js_path, "w", encoding="utf-8") as f:
+        f.write(new_content)
+    print(f"[OK] Updated main.js with URL: {url}")
 
 def start_uvicorn():
     """Start FastAPI server."""
@@ -137,7 +157,8 @@ if __name__ == "__main__":
         url = sys.argv[1].split("=")[1]
         os.environ["API_URL"] = url
         print(f"[INFO] Using provided URL: {url}")
-        update_frontend_appjs(url)
+        update_frontend_index_html(url)
+        update_frontend_main_js(url)
     else:
         # Start localtunnel and wait for URL
         url = get_localtunnel_url(8000)
