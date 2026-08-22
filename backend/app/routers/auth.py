@@ -9,6 +9,8 @@ from ..models import User
 from ..auth import get_password_hash, verify_password, create_access_token, get_current_user, authenticate_user
 from ..config import settings
 
+print("=== AUTH ROUTER LOADED (NEW VERSION) ===")
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 def log(msg):
