@@ -36,7 +36,12 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-@router.post("/register", response_model=UserResponse)
+class RegisterResponse(BaseModel):
+    user: UserResponse
+    access_token: str
+    token_type: str
+
+@router.post("/register", response_model=RegisterResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     # Check if username exists
     existing_user = db.query(User).filter(User.username == user.username).first()
@@ -66,7 +71,17 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
     
-    return db_user
+    # Create access token
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": db_user.username}, expires_delta=access_token_expires
+    )
+    
+    return {
+        "user": db_user,
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
