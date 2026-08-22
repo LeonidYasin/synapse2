@@ -22,14 +22,7 @@ jobs:
         cd backend
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    - name: Run syntax check
+    - name: Run import test
       run: |
         cd backend
-        python -m py_compile app/main.py
-        python -m py_compile app/routers/auth.py
-        python -m py_compile app/models.py
-        python -m py_compile app/database.py
-        python -m py_compile app/auth.py
-      continue-on-error: true
-    - name: Show summary
-      run: echo "✅ Syntax check completed"
+        python test_import.py
