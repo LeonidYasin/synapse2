@@ -12,6 +12,8 @@ from ..config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+print("[AUTH] Router created with prefix /auth")
+
 class UserRegister(BaseModel):
     username: str
     email: str
@@ -25,7 +27,12 @@ class UserResponse(BaseModel):
 def log(msg):
     print(f"[AUTH] {msg}")
 
-# Явно указываем метод и путь
+# Тестовый эндпоинт для проверки работы роутера
+@router.get("/test")
+async def test():
+    log("TEST ENDPOINT CALLED")
+    return {"status": "ok", "message": "Auth router is working"}
+
 @router.post("/register")
 async def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     log("=" * 50)
