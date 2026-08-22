@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
-from pydantic import BaseModel, EmailStr, Field
-import json
+from pydantic import BaseModel, EmailStr, validator
 
 from ..database import SessionLocal
 from ..models import User
@@ -12,10 +11,29 @@ from ..config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-class UserRegister(BaseModel):
-    username: str = Field(..., min_length=2, max_length=50)
-    email: EmailStr
-    password: str = Field(..., min_length=4, max_length=72)
+# Простая модель для регистрации
+class RegisterUser(BaseModel):
+    username: str
+    email: str
+    password: str
+    
+    @validator('username')
+    def username_not_empty(cls, v):
+        if not v or len(v.strip()) < 2:
+            raise ValueError('Username must be at least 2 characters')
+        return v.strip()
+    
+    @validator('email')
+    def email_valid(cls, v):
+        if not v or '@' not in v:
+            raise ValueError('Invalid email')
+        return v.strip()
+    
+    @validator('password')
+    def password_not_empty(cls, v):
+        if not v or len(v) < 4:
+            raise ValueError('Password must be at least 4 characters')
+        return v
 
 class UserResponse(BaseModel):
     id: int
@@ -23,53 +41,15 @@ class UserResponse(BaseModel):
     email: str
 
 @router.post("/register")
-async def register(request: Request, db: Session = Depends(SessionLocal)):
-    # Отладочный вывод
-    body = await request.body()
-    print(f"[DEBUG] Raw body: {body}")
-    try:
-        data = json.loads(body)
-        print(f"[DEBUG] Parsed data: {data}")
-    except:
-        print(f"[DEBUG] Failed to parse JSON")
-    
-    # Ручная валидация
-    try:
-        user_data = await request.json()
-    except:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid JSON"
-        )
-    
-    username = user_data.get("username", "").strip()
-    email = user_data.get("email", "").strip()
-    password = user_data.get("password", "")
-    
-    if not username or len(username) < 2:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username must be at least 2 characters"
-        )
-    if not email or "@" not in email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Valid email is required"
-        )
-    if not password or len(password) < 4:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be at least 4 characters"
-        )
-    
+def register(user: RegisterUser, db: Session = Depends(SessionLocal)):
     # Проверяем, существует ли пользователь
     existing_user = db.query(User).filter(
-        (User.username == username) | (User.email == email)
+        (User.username == user.username) | (User.email == user.email)
     ).first()
     
     if existing_user:
         # Если пользователь уже существует, проверяем пароль и выдаём токен
-        if verify_password(password, existing_user.hashed_password):
+        if verify_password(user.password, existing_user.hashed_password):
             access_token = create_access_token(
                 data={"sub": existing_user.username}
             )
@@ -85,10 +65,10 @@ async def register(request: Request, db: Session = Depends(SessionLocal)):
             )
     
     # Создаём нового пользователя
-    hashed_password = get_password_hash(password)
+    hashed_password = get_password_hash(user.password)
     db_user = User(
-        username=username,
-        email=email,
+        username=user.username,
+        email=user.email,
         hashed_password=hashed_password
     )
     db.add(db_user)
