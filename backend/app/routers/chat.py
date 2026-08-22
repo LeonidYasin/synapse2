@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
-from ..models import ChatRequest, ChatResponse, Dialogue
+from ..models import ChatRequest, ChatResponse, Dialogue, User
 from ..utils.llm_client import call_deepseek
 from ..database import SessionLocal
 from ..auth import get_current_user
-from ..models import User
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
