@@ -15,7 +15,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def log(msg):
     print(f"[AUTH] {msg}")
 
-# ТЕСТОВЫЙ ЭНДПОИНТ - принимает любые данные
+# ТЕСТОВЫЙ ЭНДПОИНТ
 @router.post("/test")
 async def test_endpoint(request: Request):
     body = await request.body()
@@ -31,26 +31,21 @@ async def test_endpoint(request: Request):
     log("=" * 50)
     return {"status": "ok", "received": body.decode('utf-8')}
 
-# ЭНДПОИНТ РЕГИСТРАЦИИ - теперь через Request напрямую
-@router.post("/register")
-async def register(request: Request, db: Session = Depends(SessionLocal)):
+# НОВЫЙ ЭНДПОИНТ - с другим именем
+@router.post("/signup")
+async def signup(request: Request, db: Session = Depends(SessionLocal)):
     log("=" * 50)
-    log("REGISTER ENDPOINT CALLED (via Request)")
+    log("SIGNUP ENDPOINT CALLED (new name)")
     
-    # Читаем тело запроса
     body = await request.body()
     log(f"Raw body: {body}")
     
-    # Парсим JSON
     try:
         data = json.loads(body)
         log(f"Parsed data: {data}")
         username = data.get("username")
         email = data.get("email")
         password = data.get("password")
-        log(f"Username: {username}")
-        log(f"Email: {email}")
-        log(f"Password length: {len(password) if password else 0}")
     except Exception as e:
         log(f"Error parsing JSON: {e}")
         raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
@@ -58,6 +53,10 @@ async def register(request: Request, db: Session = Depends(SessionLocal)):
     if not username or not email or not password:
         log("Missing required fields")
         raise HTTPException(status_code=400, detail="Missing required fields")
+    
+    log(f"Username: {username}")
+    log(f"Email: {email}")
+    log(f"Password length: {len(password)}")
     
     # Проверяем, существует ли пользователь
     log("Checking if user exists...")
@@ -103,13 +102,20 @@ async def register(request: Request, db: Session = Depends(SessionLocal)):
         data={"sub": db_user.username}
     )
     log("=" * 50)
-    log("REGISTER SUCCESS")
+    log("SIGNUP SUCCESS")
     log("=" * 50)
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "message": "Registration successful"
     }
+
+# Оставляем старый эндпоинт для совместимости
+@router.post("/register")
+async def register(request: Request):
+    log("=" * 50)
+    log("REGISTER ENDPOINT CALLED (old name) - REDIRECT TO /signup")
+    return await signup(request)
 
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(SessionLocal)):
