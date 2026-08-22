@@ -9,14 +9,12 @@ from ..models import User
 from ..auth import get_password_hash, verify_password, create_access_token, get_current_user, authenticate_user
 from ..config import settings
 
-print("=== AUTH ROUTER LOADED (NEW VERSION) ===")
-
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 def log(msg):
     print(f"[AUTH] {msg}")
 
-# ТЕСТОВЫЙ ЭНДПОИНТ - работает!
+# ТЕСТОВЫЙ ЭНДПОИНТ - РАБОТАЕТ
 @router.post("/test-raw")
 async def test_raw(request: Request):
     log("=" * 50)
@@ -35,18 +33,20 @@ async def test_raw(request: Request):
         log("=" * 50)
         return {"status": "error", "error": str(e), "body": body.decode('utf-8', errors='replace')}
 
-# РЕГИСТРАЦИЯ - теперь как raw, без Pydantic
+# РЕГИСТРАЦИЯ - ТОЧНО ТАКОЙ ЖЕ КАК test-raw
 @router.post("/register")
 async def register(request: Request, db: Session = Depends(SessionLocal)):
     log("=" * 50)
-    log("REGISTER ENDPOINT CALLED (raw)")
-    
+    log("REGISTER ENDPOINT CALLED (IDENTICAL TO test-raw)")
+    body = await request.body()
+    log(f"Raw body: {body}")
     try:
-        body = await request.body()
-        log(f"Raw body: {body}")
-        data = json.loads(body)
-        log(f"Parsed data: {data}")
+        decoded = body.decode('utf-8')
+        log(f"Decoded: {decoded}")
+        data = json.loads(decoded)
+        log(f"Parsed: {data}")
         
+        # Извлекаем данные
         username = data.get("username", "").strip()
         email = data.get("email", "").strip()
         password = data.get("password", "")
@@ -55,44 +55,36 @@ async def register(request: Request, db: Session = Depends(SessionLocal)):
         log(f"Email: {email}")
         log(f"Password length: {len(password)}")
         
+        # Валидация
         if not username or len(username) < 2:
-            log("Username too short")
             raise HTTPException(status_code=400, detail="Username must be at least 2 characters")
         if not email or "@" not in email:
-            log("Invalid email")
             raise HTTPException(status_code=400, detail="Invalid email")
         if not password or len(password) < 4:
-            log("Password too short")
             raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
         
-        # Проверяем, существует ли пользователь
-        log("Checking if user exists...")
+        # Проверка существующего пользователя
         existing_user = db.query(User).filter(
             (User.username == username) | (User.email == email)
         ).first()
         
         if existing_user:
-            log(f"User exists: {existing_user.username} (id={existing_user.id})")
+            log(f"User exists: {existing_user.username}")
             if verify_password(password, existing_user.hashed_password):
-                log("Password correct, logging in existing user")
-                access_token = create_access_token(
-                    data={"sub": existing_user.username}
-                )
-                log("=" * 50)
+                log("Password correct, logging in")
+                access_token = create_access_token(data={"sub": existing_user.username})
                 return {
                     "access_token": access_token,
                     "token_type": "bearer",
                     "message": "Welcome back!"
                 }
             else:
-                log("Password incorrect for existing user")
-                log("=" * 50)
                 raise HTTPException(
                     status_code=400,
                     detail="Username or email already registered with different password"
                 )
         
-        # Создаём нового пользователя
+        # Создание пользователя
         log("Creating new user...")
         hashed_password = get_password_hash(password)
         db_user = User(
@@ -105,11 +97,7 @@ async def register(request: Request, db: Session = Depends(SessionLocal)):
         db.refresh(db_user)
         log(f"User created with id={db_user.id}")
         
-        # Выдаём токен
-        log("Creating access token...")
-        access_token = create_access_token(
-            data={"sub": db_user.username}
-        )
+        access_token = create_access_token(data={"sub": db_user.username})
         log("=" * 50)
         log("REGISTER SUCCESS")
         log("=" * 50)
@@ -122,9 +110,11 @@ async def register(request: Request, db: Session = Depends(SessionLocal)):
     except json.JSONDecodeError as e:
         log(f"JSON decode error: {e}")
         raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+    except HTTPException:
+        raise
     except Exception as e:
         log(f"Unexpected error: {e}")
-        raise
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(SessionLocal)):
