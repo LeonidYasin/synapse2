@@ -34,14 +34,13 @@ jobs:
 
       - name: Check if server is running
         run: |
-          curl -I http://localhost:8000/ || echo "Server not responding"
+          curl -I http://localhost:8000/ || exit 1
 
       - name: Run API tests
         id: api-tests
         run: |
           cd backend
           python test_server.py
-        continue-on-error: true
 
       - name: Show summary
         if: always()
@@ -49,5 +48,5 @@ jobs:
           echo "=========================================="
           echo "📊 TEST SUMMARY"
           echo "=========================================="
-          echo "API Tests: ${{ steps.api-tests.outcome }}"
+          echo "Status: ${{ steps.api-tests.outcome }}"
           echo "=========================================="
