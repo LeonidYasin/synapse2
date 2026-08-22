@@ -1,71 +1,36 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#2d3748">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
-    <title>Синапс — ИИ-нетворкинг</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div id="app">
-        <header>
-            <h1>🧠 Синапс</h1>
-            <div class="settings">
-                <div id="authSection">
-                    <div class="auth-fields">
-                        <input type="text" id="loginInput" placeholder="👤 Логин" />
-                        <input type="email" id="emailInput" placeholder="📧 Email" />
-                        <input type="password" id="passwordInput" placeholder="🔒 Пароль" />
-                    </div>
-                    <div class="auth-buttons">
-                        <button id="registerBtn">📝 Регистрация</button>
-                        <button id="loginBtn">🔑 Вход</button>
-                        <button id="logoutBtn" style="display:none;">🚪 Выход</button>
-                    </div>
-                </div>
-                <input type="text" id="apiKeyInput" placeholder="🔑 API-ключ (опционально)" />
-                <button id="analyzeBtn">📊 Анализировать</button>
-            </div>
-        </header>
-        <main>
-            <div id="chatContainer">
-                <div id="messages"></div>
-                <div id="inputArea">
-                    <textarea id="userInput" rows="3" placeholder="Напишите сообщение..."></textarea>
-                    <button id="sendBtn">📨 Отправить</button>
-                </div>
-            </div>
-            <div id="profileSidebar">
-                <h3>👤 Ваш профиль</h3>
-                <div id="profileContent">
-                    <p>Войдите в систему, чтобы увидеть свой профиль.</p>
-                </div>
-                <h3>📌 Рекомендации</h3>
-                <div id="recommendationsContent">
-                    <p>Войдите в систему для получения рекомендаций.</p>
-                </div>
-            </div>
-        </main>
-    </div>
-    <script src="app.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#4f46e5" />
+    <title>Синапс</title>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="stylesheet" href="/style.css?v=2" />
     <script>
-        // Регистрация Service Worker для PWA
+        // Принудительная очистка кэша для app.js
+        window.APP_VERSION = '2.0.0';
+        console.log('APP_VERSION:', window.APP_VERSION);
+        
+        // Удаляем старый service worker если есть
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker зарегистрирован');
-                    })
-                    .catch(err => {
-                        console.log('ServiceWorker ошибка:', err);
-                    });
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (let registration of registrations) {
+                    registration.unregister();
+                    console.log('SW unregistered:', registration);
+                }
             });
         }
     </script>
+</head>
+<body>
+    <div id="app"></div>
+    <script>
+        // Устанавливаем API_URL до загрузки app.js
+        window.API_URL = 'https://polite-buses-pull.loca.lt';
+        console.log('API_URL set to:', window.API_URL);
+    </script>
+    <script src="/app.js?v=2.0.0"></script>
 </body>
 </html>
