@@ -1,4 +1,4 @@
-# VERSION: 2026-08-22-v7-TEST-NEW-ENDPOINT
+# VERSION: 2026-08-22-v8-FINAL
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
@@ -12,7 +12,7 @@ from ..auth import get_password_hash, verify_password, create_access_token, get_
 from ..config import settings
 
 print("=" * 60)
-print("[AUTH] ROUTER LOADED - VERSION: 2026-08-22-v7-TEST-NEW-ENDPOINT")
+print("[AUTH] ROUTER LOADED - VERSION: 2026-08-22-v8-FINAL")
 print("=" * 60)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -20,36 +20,19 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def log(msg):
     print(f"[AUTH] {msg}", flush=True)
 
-# НОВЫЙ ТЕСТОВЫЙ ЭНДПОИНТ - /auth/register2
-@router.post("/register2")
-async def register2(request: Request):
+# ============================================================
+# НОВЫЙ ЭНДПОИНТ - /auth/register-new
+# ============================================================
+@router.post("/register-new")
+async def register_new(request: Request, db: Session = Depends(SessionLocal)):
     log("=" * 50)
-    log("REGISTER2 ENDPOINT CALLED - TEST")
+    log("REGISTER-NEW ENDPOINT CALLED")
+    
     body = await request.body()
     log(f"Raw body: {body}")
+    
     try:
-        decoded = body.decode('utf-8')
-        log(f"Decoded: {decoded}")
-        data = json.loads(decoded)
-        log(f"Parsed: {data}")
-        log("=" * 50)
-        return {"status": "ok", "data": data, "endpoint": "/auth/register2"}
-    except Exception as e:
-        log(f"Error: {e}")
-        log("=" * 50)
-        return {"status": "error", "error": str(e)}
-
-# Оригинальный /auth/register - копия register2
-@router.post("/register")
-async def register(request: Request, db: Session = Depends(SessionLocal)):
-    log("=" * 50)
-    log("REGISTER ENDPOINT CALLED (v7)")
-    body = await request.body()
-    log(f"Raw body: {body}")
-    try:
-        decoded = body.decode('utf-8')
-        log(f"Decoded: {decoded}")
-        data = json.loads(decoded)
+        data = json.loads(body)
         log(f"Parsed: {data}")
         
         username = data.get("username", "").strip()
@@ -101,7 +84,7 @@ async def register(request: Request, db: Session = Depends(SessionLocal)):
         
         access_token = create_access_token(data={"sub": db_user.username})
         log("=" * 50)
-        log("REGISTER SUCCESS")
+        log("REGISTER-NEW SUCCESS")
         log("=" * 50)
         return {
             "access_token": access_token,
@@ -118,7 +101,9 @@ async def register(request: Request, db: Session = Depends(SessionLocal)):
         log(f"Unexpected error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Остальные эндпоинты...
+# ============================================================
+# ТЕСТОВЫЙ ЭНДПОИНТ
+# ============================================================
 @router.post("/test-raw")
 async def test_raw(request: Request):
     log("=" * 50)
@@ -137,6 +122,18 @@ async def test_raw(request: Request):
         log("=" * 50)
         return {"status": "error", "error": str(e), "body": body.decode('utf-8', errors='replace')}
 
+# ============================================================
+# СТАРЫЙ /auth/register - ПЕРЕНАПРАВЛЯЕМ НА НОВЫЙ
+# ============================================================
+@router.post("/register")
+async def register(request: Request, db: Session = Depends(SessionLocal)):
+    log("=" * 50)
+    log("REGISTER (OLD) - redirecting to register-new")
+    return await register_new(request, db)
+
+# ============================================================
+# ЛОГИН И ПРОФИЛЬ
+# ============================================================
 @router.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(SessionLocal)):
     log("=" * 50)
