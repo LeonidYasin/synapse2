@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
-from ..models import ChatRequest, ChatResponse, User
+from ..models import ChatRequest, ChatResponse
 from ..utils.llm_client import call_deepseek
 from ..database import SessionLocal
 from ..auth import get_current_user
+from ..models import User
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -26,8 +27,9 @@ async def chat(request: ChatRequest, current_user: User = Depends(get_current_us
             model=request.model
         )
         
-        # TODO: сохранять диалог в БД позже
-        # для сейчас просто возвращаем ответ
+        # TODO: Сохранять диалог в БД позже
+        # Сейчас просто возвращаем ответ
+        
         return ChatResponse(role=response["role"], content=response["content"])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
