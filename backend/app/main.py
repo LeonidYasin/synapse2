@@ -4,7 +4,6 @@ from fastapi.responses import FileResponse, JSONResponse
 import os
 import json
 
-# Импортируем роутеры
 from .routers import auth, recommendations, waitlist, agent
 
 app = FastAPI(title="Synapse API", version="1.0.0")
@@ -24,25 +23,18 @@ app.include_router(recommendations.router)
 app.include_router(waitlist.router)
 app.include_router(agent.router)
 
-# Проверка, что роутер загружен
 print("=== MAIN.PY LOADED ===")
 print(f"Routes registered: {[r.path for r in app.routes]}")
 
-# Middleware для логирования
+# Middleware для логирования - НЕ читает тело запроса
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    body = await request.body()
     print(f"============================================================")
     print(f"[REQUEST] {request.method} {request.url.path}")
     print(f"[REQUEST] Headers: {dict(request.headers)}")
-    try:
-        if body:
-            print(f"[REQUEST] Body: {body.decode('utf-8', errors='replace')}")
-        else:
-            print(f"[REQUEST] Body: (empty)")
-    except:
-        print(f"[REQUEST] Body: (binary)")
-    print(f"============================================================")
+    print(f"[REQUEST] Content-Type: {request.headers.get('content-type')}")
+    
+    # Не читаем body здесь, чтобы не сломать эндпоинты
     response = await call_next(request)
     print(f"[RESPONSE] Status: {response.status_code}")
     return response
