@@ -12,7 +12,7 @@ from ..config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# Простая модель без валидации
+# Упрощённая модель без EmailStr
 class UserRegister(BaseModel):
     username: str
     email: str
@@ -26,7 +26,7 @@ class UserResponse(BaseModel):
 def log(msg):
     print(f"[AUTH] {msg}")
 
-# ТЕСТОВЫЙ ЭНДПОИНТ - принимает любые данные
+# ТЕСТОВЫЙ ЭНДПОИНТ
 @router.post("/test")
 async def test_endpoint(request: Request):
     body = await request.body()
@@ -58,8 +58,6 @@ def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     
     if existing_user:
         log(f"User exists: {existing_user.username} (id={existing_user.id})")
-        # Если пользователь уже существует, проверяем пароль
-        log("Verifying password...")
         if verify_password(user.password, existing_user.hashed_password):
             log("Password correct, logging in existing user")
             access_token = create_access_token(
@@ -92,8 +90,6 @@ def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     db.refresh(db_user)
     log(f"User created with id={db_user.id}")
     
-    # Выдаём токен
-    log("Creating access token...")
     access_token = create_access_token(
         data={"sub": db_user.username}
     )
