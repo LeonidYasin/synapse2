@@ -14,7 +14,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def log(msg):
     print(f"[AUTH] {msg}")
 
-# ТЕСТОВЫЙ ЭНДПОИНТ - принимает raw JSON без моделей
+# ТЕСТОВЫЙ ЭНДПОИНТ - работает!
 @router.post("/test-raw")
 async def test_raw(request: Request):
     log("=" * 50)
@@ -33,7 +33,7 @@ async def test_raw(request: Request):
         log("=" * 50)
         return {"status": "error", "error": str(e), "body": body.decode('utf-8', errors='replace')}
 
-# БЕЗ PYDANTIC - принимаем raw JSON
+# РЕГИСТРАЦИЯ - теперь как raw, без Pydantic
 @router.post("/register")
 async def register(request: Request, db: Session = Depends(SessionLocal)):
     log("=" * 50)
