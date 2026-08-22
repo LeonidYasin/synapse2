@@ -104,7 +104,7 @@ if __name__ == "__main__":
     print("[INFO] Запуск скрипта run.py")
     print(f"[DEBUG] Аргументы командной строки: {sys.argv}")
     
-    # ПРАВИЛЬНЫЙ ПОРЯДОК: СНАЧАЛА ПОЛУЧАЕМ URL, ПОТОМ ЗАПУСКАЕМ СЕРВЕР
+    # 1. СНАЧАЛА получаем URL
     if len(sys.argv) > 1 and sys.argv[1].startswith("--url="):
         url = sys.argv[1].split("=")[1]
         os.environ["API_URL"] = url
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         else:
             print("[INFO] Туннель не создан, но продолжаем с localhost...")
     
-    # ТОЛЬКО ПОСЛЕ ПОЛУЧЕНИЯ URL ЗАПУСКАЕМ UVICORN
+    # 2. Запускаем uvicorn
     try:
         start_uvicorn()
     except KeyboardInterrupt:
