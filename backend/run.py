@@ -12,6 +12,7 @@ def get_localtunnel_url(port=8000, timeout=30):
     """
     print("[INFO] Запуск localtunnel...")
     try:
+        # Проверяем, доступен ли npx
         subprocess.run(["npx", "--version"], capture_output=True, check=True)
     except (subprocess.CalledProcessError, FileNotFoundError):
         print("[WARN] npx не найден. Установите Node.js или используйте ручной URL.")
@@ -30,11 +31,14 @@ def get_localtunnel_url(port=8000, timeout=30):
     url = None
     start_time = time.time()
     
+    print("[INFO] Ожидание URL от localtunnel...")
+    
     while time.time() - start_time < timeout:
         line = process.stdout.readline()
         if not line:
             time.sleep(0.1)
             continue
+        print(f"[DEBUG] {line.strip()}")
         if "your url is:" in line:
             match = re.search(r"https://[^\s]+", line)
             if match:
@@ -57,6 +61,9 @@ def get_localtunnel_url(port=8000, timeout=30):
         print(f"[OK] URL сохранён в {env_path}")
     else:
         print("[WARN] Не удалось получить URL localtunnel. Используйте localhost.")
+        print("[INFO] Попробуйте запустить localtunnel вручную в другом терминале:")
+        print("[INFO] npx localtunnel --port 8000")
+        print("[INFO] И затем передайте URL: python run.py --url=https://your-url.loca.lt")
     
     return url
 
@@ -66,9 +73,13 @@ def start_uvicorn():
     print("[INFO] Открой в браузере: http://localhost:8000/")
     api_url = os.getenv("API_URL", "не задан")
     print(f"[INFO] Публичный адрес: {api_url}")
+    print("[INFO] Нажмите CTRL+C для остановки")
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
 
 if __name__ == "__main__":
+    print("[INFO] Запуск скрипта run.py")
+    print(f"[DEBUG] Аргументы командной строки: {sys.argv}")
+    
     # Проверяем, не передан ли URL через аргумент командной строки
     if len(sys.argv) > 1 and sys.argv[1].startswith("--url="):
         url = sys.argv[1].split("=")[1]
