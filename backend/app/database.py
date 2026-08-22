@@ -8,9 +8,17 @@ engine = create_engine(Config.DATABASE_URL, connect_args={"check_same_thread": F
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 class User(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=True)
     hashed_password = Column(String, nullable=False)
     api_key = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
