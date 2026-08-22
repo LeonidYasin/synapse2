@@ -5,6 +5,7 @@ import re
 import os
 import sys
 import shutil
+import threading
 
 def find_npx():
     """Находит путь к npx в системе."""
