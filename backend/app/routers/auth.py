@@ -12,7 +12,6 @@ from ..config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# Упрощённая модель для регистрации
 class UserRegister(BaseModel):
     username: str
     email: str
@@ -26,8 +25,9 @@ class UserResponse(BaseModel):
 def log(msg):
     print(f"[AUTH] {msg}")
 
+# Явно указываем метод и путь
 @router.post("/register")
-def register(user: UserRegister, db: Session = Depends(SessionLocal)):
+async def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     log("=" * 50)
     log("REGISTER ENDPOINT CALLED")
     log(f"Username: {user.username}")
@@ -42,7 +42,6 @@ def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     
     if existing_user:
         log(f"User exists: {existing_user.username} (id={existing_user.id})")
-        # Если пользователь уже существует, проверяем пароль
         log("Verifying password...")
         if verify_password(user.password, existing_user.hashed_password):
             log("Password correct, logging in existing user")
@@ -76,7 +75,6 @@ def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     db.refresh(db_user)
     log(f"User created with id={db_user.id}")
     
-    # Выдаём токен
     log("Creating access token...")
     access_token = create_access_token(
         data={"sub": db_user.username}
@@ -91,7 +89,7 @@ def register(user: UserRegister, db: Session = Depends(SessionLocal)):
     }
 
 @router.post("/login")
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(SessionLocal)):
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(SessionLocal)):
     log("=" * 50)
     log("LOGIN ENDPOINT CALLED")
     log(f"Username: {form_data.username}")
@@ -117,7 +115,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     }
 
 @router.get("/me", response_model=UserResponse)
-def read_users_me(current_user: User = Depends(get_current_user)):
+async def read_users_me(current_user: User = Depends(get_current_user)):
     log("=" * 50)
     log("GET /me CALLED")
     log(f"Current user: {current_user.username} (id={current_user.id})")
