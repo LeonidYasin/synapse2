@@ -7,7 +7,7 @@ import sys
 import shutil
 
 def find_npx():
-    """Находит путь к npx в системе."""
+    """Find path to npx in the system."""
     npx_path = shutil.which("npx")
     if npx_path:
         return npx_path
@@ -27,23 +27,23 @@ def find_npx():
 
 def get_localtunnel_url(port=8000, timeout=30):
     """
-    Запускает localtunnel и возвращает публичный URL.
-    Использует npx для запуска.
+    Start localtunnel and return public URL.
+    Uses npx to run localtunnel.
     """
-    print("[INFO] Запуск localtunnel...")
+    print("[INFO] Starting localtunnel...")
     
     npx_cmd = find_npx()
     if not npx_cmd:
-        print("[WARN] npx не найден. Установите Node.js или используйте ручной URL.")
-        print("[INFO] Для ручного ввода: python run.py --url=https://your-url.loca.lt")
+        print("[WARN] npx not found. Install Node.js or use manual URL.")
+        print("[INFO] Manual usage: python run.py --url=https://your-url.loca.lt")
         return None
     
-    print(f"[DEBUG] Используется npx: {npx_cmd}")
+    print(f"[DEBUG] Using npx: {npx_cmd}")
     
     try:
         subprocess.run([npx_cmd, "--version"], capture_output=True, check=True)
     except (subprocess.CalledProcessError, FileNotFoundError):
-        print(f"[ERROR] npx не работает: {npx_cmd}")
+        print(f"[ERROR] npx is not working: {npx_cmd}")
         return None
 
     process = subprocess.Popen(
@@ -57,7 +57,7 @@ def get_localtunnel_url(port=8000, timeout=30):
     url = None
     start_time = time.time()
     
-    print("[INFO] Ожидание URL от localtunnel...")
+    print("[INFO] Waiting for URL from localtunnel...")
     
     while time.time() - start_time < timeout:
         line = process.stdout.readline()
@@ -69,69 +69,69 @@ def get_localtunnel_url(port=8000, timeout=30):
             match = re.search(r"https://[^\s]+", line)
             if match:
                 url = match.group(0)
-                print(f"[OK] Туннель открыт: {url}")
+                print(f"[OK] Tunnel opened: {url}")
                 break
         if "error" in line.lower():
-            print(f"[ERROR] Ошибка localtunnel: {line}")
+            print(f"[ERROR] localtunnel error: {line}")
             break
     
     if url:
         os.environ["API_URL"] = url
-        print(f"[OK] API_URL установлен: {url}")
+        print(f"[OK] API_URL set: {url}")
         
         env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
         with open(env_path, "w", encoding="utf-8") as f:
             f.write(f"API_URL={url}\n")
-        print(f"[OK] URL сохранён в {env_path}")
+        print(f"[OK] URL saved to {env_path}")
     else:
-        print("[WARN] Не удалось получить URL localtunnel. Используйте localhost.")
-        print("[INFO] Попробуйте запустить localtunnel вручную в другом терминале:")
+        print("[WARN] Could not get URL from localtunnel. Using localhost.")
+        print("[INFO] Try running localtunnel manually in another terminal:")
         print("[INFO] npx localtunnel --port 8000")
-        print("[INFO] И затем передайте URL: python run.py --url=https://your-url.loca.lt")
+        print("[INFO] Then pass the URL: python run.py --url=https://your-url.loca.lt")
     
     return url
 
 def start_uvicorn():
-    """Запускает FastAPI сервер"""
-    print("[INFO] Запуск FastAPI сервера...")
-    print("[INFO] Открой в браузере: http://localhost:8000/")
-    api_url = os.getenv("API_URL", "не задан")
-    print(f"[INFO] Публичный адрес: {api_url}")
-    print("[INFO] Нажмите CTRL+C для остановки")
+    """Start FastAPI server."""
+    print("[INFO] Starting FastAPI server...")
+    print("[INFO] Open in browser: http://localhost:8000/")
+    api_url = os.getenv("API_URL", "not set")
+    print(f"[INFO] Public URL: {api_url}")
+    print("[INFO] Press CTRL+C to stop")
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
 
 if __name__ == "__main__":
-    print("[INFO] Запуск скрипта run.py")
-    print(f"[DEBUG] Аргументы командной строки: {sys.argv}")
+    print("[INFO] Starting run.py script")
+    print(f"[DEBUG] Command line arguments: {sys.argv}")
     
-    # 1. СНАЧАЛА получаем URL
+    # 1. Get URL first
     if len(sys.argv) > 1 and sys.argv[1].startswith("--url="):
         url = sys.argv[1].split("=")[1]
         os.environ["API_URL"] = url
-        print(f"[INFO] Используется переданный URL: {url}")
+        print(f"[INFO] Using provided URL: {url}")
     else:
-        # Запускаем localtunnel и ждём получения URL
+        # Start localtunnel and wait for URL
         url = get_localtunnel_url(8000)
         if url:
-            print("[INFO] Туннель успешно создан, продолжаем...")
+            print("[INFO] Tunnel created successfully, continuing...")
         else:
-            print("[INFO] Туннель не создан, но продолжаем с localhost...")
+            print("[INFO] Tunnel not created, continuing with localhost...")
     
-    # 2. ЖДЁМ ПОДТВЕРЖДЕНИЯ ОТ ПОЛЬЗОВАТЕЛЯ
+    # 2. Wait for user confirmation
     print("\n" + "="*60)
-    print("[INFO] Туннель готов!")
-    print("[INFO] Для запуска сервера нажмите ENTER")
-    print("[INFO] Для отмены нажмите CTRL+C")
+    print("[INFO] Tunnel is ready!")
+    print("[INFO] Press ENTER to start the server")
+    print("[INFO] Press CTRL+C to cancel")
     print("="*60)
     
     try:
-        input()  # Ждём нажатия ENTER
+        input()  # Wait for ENTER key
     except KeyboardInterrupt:
-        print("\n[INFO] Запуск отменён пользователем")
+        print("\n[INFO] Startup cancelled by user")
         sys.exit(0)
     
-    # 3. ТОЛЬКО ПОСЛЕ НАЖАТИЯ ENTER ЗАПУСКАЕМ UVICORN
+    # 3. Only after ENTER, start uvicorn
     try:
         start_uvicorn()
     except KeyboardInterrupt:
-        print("\n[INFO] Остановка сервера...")
+        print("\n[INFO] Server stopped")
